@@ -1,4 +1,4 @@
-"""Draw the app icon and build packaging/dbnview.icns (macOS iconutil)."""
+"""Draw the app icon: packaging/icon.png (Linux), dbnview.ico (Windows) and dbnview.icns (macOS, needs iconutil)."""
 import os, shutil, subprocess, sys
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -39,13 +39,15 @@ def draw(size):
     return img
 
 
-iconset = os.path.join(here, "dbnview.iconset")
-shutil.rmtree(iconset, ignore_errors=True)
-os.makedirs(iconset)
-for n in (16, 32, 128, 256, 512):
-    draw(n).save(os.path.join(iconset, "icon_%dx%d.png" % (n, n)))
-    draw(n * 2).save(os.path.join(iconset, "icon_%dx%d@2x.png" % (n, n)))
 draw(1024).save(os.path.join(here, "icon.png"))
-subprocess.check_call(["iconutil", "-c", "icns", iconset, "-o", os.path.join(here, "dbnview.icns")])
-shutil.rmtree(iconset)
+draw(256).save(os.path.join(here, "dbnview.ico"))
+if shutil.which("iconutil"):
+    iconset = os.path.join(here, "dbnview.iconset")
+    shutil.rmtree(iconset, ignore_errors=True)
+    os.makedirs(iconset)
+    for n in (16, 32, 128, 256, 512):
+        draw(n).save(os.path.join(iconset, "icon_%dx%d.png" % (n, n)))
+        draw(n * 2).save(os.path.join(iconset, "icon_%dx%d@2x.png" % (n, n)))
+    subprocess.check_call(["iconutil", "-c", "icns", iconset, "-o", os.path.join(here, "dbnview.icns")])
+    shutil.rmtree(iconset)
 print("ok")

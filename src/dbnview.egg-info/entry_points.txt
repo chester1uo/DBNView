@@ -1,0 +1,6 @@
+[console_scripts]
+dbnview-tui = dbnview.tui.app:main
+dbnview-web = dbnview.web.server:main
+
+[gui_scripts]
+dbnview = dbnview.gui.app:main

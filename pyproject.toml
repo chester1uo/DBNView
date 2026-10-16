@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dbnview"
+dynamic = ["version"]
+description = "Viewer for Databento DBN market-data files (.dbn / .dbn.zst): desktop app, terminal UI and browser UI"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "Haochen Luo" }]
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+dependencies = [
+    "numpy>=1.22",
+    "zstandard>=0.18",
+    "tzdata; sys_platform == 'win32'",   # Windows has no system IANA time-zone database
+]
+
+[project.optional-dependencies]
+gui = ["PySide6>=6.5", "pyqtgraph>=0.13", "PyOpenGL>=3.1"]
+tui = ["textual>=0.60", "plotext>=5.2,<6"]
+all = ["dbnview[gui,tui]"]
+dev = ["dbnview[all]", "pytest>=7", "pyflakes", "pyinstaller>=6"]
+
+[project.scripts]
+dbnview-web = "dbnview.web.server:main"
+dbnview-tui = "dbnview.tui.app:main"
+
+[project.gui-scripts]
+dbnview = "dbnview.gui.app:main"
+
+[project.urls]
+Homepage = "https://github.com/chester1uo/DBNView"
+
+[tool.setuptools.dynamic]
+version = { attr = "dbnview.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"dbnview.engine" = ["spec.json"]
+"dbnview.web" = ["static/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
