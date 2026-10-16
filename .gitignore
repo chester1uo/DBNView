@@ -1,0 +1,15 @@
+# local environments / build output
+.venv/
+build/
+dist/
+dist_next/
+__pycache__/
+*.pyc
+packaging/dbnview.iconset/
+.DS_Store
+
+# market data never goes into the repo
+*.dbn
+*.zst
+*.dbn.zst
+*.parquet

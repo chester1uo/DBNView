@@ -1,0 +1,942 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dbnview</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.30/dist/uPlot.min.css">
+<script src="https://cdn.jsdelivr.net/npm/uplot@1.6.30/dist/uPlot.iife.min.js"></script>
+<style>
+:root{
+  --bg:#0e1116; --panel:#151a21; --panel2:#1b212a; --line:#2a313c; --line2:#222833;
+  --text:#e4e8ee; --muted:#8a94a3; --faint:#5d6674; --accent:#5b9dff; --accent-weak:rgba(91,157,255,.14);
+  --bid:#3ccf8e; --ask:#ff6b6b; --bid-weak:rgba(60,207,142,.16); --ask-weak:rgba(255,107,107,.16);
+  --warn:#e3b341; --sel:rgba(91,157,255,.20); --hover:rgba(255,255,255,.035);
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+:root[data-theme="light"]{
+  --bg:#f6f7f9; --panel:#ffffff; --panel2:#f1f3f6; --line:#dfe3e8; --line2:#eceff3;
+  --text:#1b2330; --muted:#5f6b7a; --faint:#9aa4b1; --accent:#2f6fde; --accent-weak:rgba(47,111,222,.10);
+  --bid:#139a5b; --ask:#d63b3b; --bid-weak:rgba(19,154,91,.12); --ask-weak:rgba(214,59,59,.10);
+  --warn:#a87400; --sel:rgba(47,111,222,.14); --hover:rgba(0,0,0,.03); color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+input::placeholder{color:var(--faint)}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/1.45 var(--sans)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 10px}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+button.ghost:hover{color:var(--text);border-color:var(--line)}
+button:disabled{opacity:.45;cursor:default}
+input,select{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;outline:none;min-width:0}
+input:focus,select:focus{border-color:var(--accent)}
+.mono{font-family:var(--mono)}
+.muted{color:var(--muted)}
+.app{display:grid;grid-template-rows:auto 1fr;height:100vh}
+header{display:flex;gap:8px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--panel)}
+.logo{font-weight:700;letter-spacing:.2px;margin-right:4px;white-space:nowrap}
+.logo span{color:var(--accent)}
+#pathInput{flex:1;font-family:var(--mono);font-size:12px}
+.main{display:grid;grid-template-columns:300px 1fr;min-height:0}
+aside{border-right:1px solid var(--line);background:var(--panel);overflow:auto;padding:12px;display:flex;flex-direction:column;gap:14px}
+.sec h3{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-family:var(--mono);overflow-wrap:anywhere}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:9px}
+.field label{font-size:12px;color:var(--muted)}
+.field > input,.field > select{width:100%}
+.row2 > *{min-width:0}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--accent-weak);border:1px solid transparent;border-radius:999px;padding:1px 4px 1px 8px;font-family:var(--mono);font-size:11.5px;white-space:pre}
+.chip b{font-weight:400;cursor:pointer;color:var(--muted);padding:0 3px}
+.chip b:hover{color:var(--text)}
+.sugg{position:relative}
+.sugg-list{position:absolute;z-index:20;left:0;right:0;top:100%;margin-top:2px;max-height:260px;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.sugg-list div{padding:4px 8px;cursor:pointer;font-family:var(--mono);font-size:12px;white-space:pre;display:flex;justify-content:space-between;gap:8px}
+.sugg-list div:hover,.sugg-list div.on{background:var(--sel)}
+.checks{display:flex;flex-wrap:wrap;gap:4px}
+.checks label{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border:1px solid var(--line);border-radius:5px;cursor:pointer;font-size:12px;font-family:var(--mono);color:var(--text)}
+.checks input{margin:0}
+.btns{display:flex;gap:6px}
+.btns button{flex:1}
+.progress{height:6px;background:var(--line2);border-radius:999px;overflow:hidden;margin:6px 0}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.status{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.status b{color:var(--text);font-weight:600}
+.err{color:var(--ask);font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.content{display:grid;grid-template-rows:auto 1fr;min-width:0;min-height:0}
+.tabs{display:flex;align-items:center;gap:2px;padding:6px 10px 0;border-bottom:1px solid var(--line);background:var(--panel)}
+.tab{border:none;background:none;border-bottom:2px solid transparent;border-radius:0;padding:7px 12px;color:var(--muted)}
+.tab.on{color:var(--text);border-bottom-color:var(--accent)}
+.tabs .spacer{flex:1}
+.tools{display:flex;gap:6px;align-items:center;padding-bottom:5px}
+.tools input{width:170px}
+.view{display:none;min-height:0;min-width:0;position:relative}
+.view.on{display:flex}
+#tableView{flex-direction:row}
+.grid{flex:1;overflow:auto;position:relative;font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums}
+.ghead{position:sticky;top:0;z-index:3;display:flex;background:var(--panel2);border-bottom:1px solid var(--line);width:max-content;min-width:100%}
+.ghead div{padding:6px 8px;color:var(--muted);font-family:var(--sans);font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none;border-right:1px solid var(--line2);user-select:none}
+.gbody{position:relative}
+.grow{position:absolute;left:0;display:flex;width:max-content;min-width:100%;cursor:default;border-bottom:1px solid var(--line2)}
+.grow:hover{background:var(--hover)}
+.grow.sel{background:var(--sel)}
+.grow div{padding:0 8px;white-space:pre;overflow:hidden;text-overflow:ellipsis;flex:none}
+.r{text-align:right}
+.nil{color:var(--faint)}
+.sB{color:var(--bid)} .sA{color:var(--ask)}
+.badge{display:inline-block;min-width:16px;text-align:center;border-radius:3px;padding:0 3px;font-weight:600}
+.aA{background:var(--accent-weak);color:var(--accent)} .aC{background:var(--ask-weak);color:var(--ask)}
+.aT,.aF{background:rgba(227,179,65,.16);color:var(--warn)} .aM{background:var(--line2);color:var(--text)} .aR{background:var(--ask);color:#fff}
+.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--muted);text-align:center;padding:20px}
+.empty .big{font-size:15px;color:var(--text)}
+.drawer{width:420px;flex:none;border-left:1px solid var(--line);background:var(--panel);overflow:auto;padding:12px;display:none}
+.drawer.on{display:block}
+.drawer h4{margin:0 0 8px;display:flex;justify-content:space-between;align-items:center;font-size:13px}
+.dtable{width:100%;border-collapse:collapse;font-size:12px}
+.dtable td{padding:2px 4px;border-bottom:1px solid var(--line2);vertical-align:top}
+.dtable td:first-child{color:var(--muted);white-space:nowrap}
+.dtable td:last-child{font-family:var(--mono);overflow-wrap:anywhere}
+.ladder{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;margin:8px 0 14px;font-variant-numeric:tabular-nums}
+.ladder td,.ladder th{padding:2px 6px;text-align:right;position:relative}
+.ladder th{color:var(--muted);font-family:var(--sans);font-weight:600;font-size:11px}
+.ladder .bar{position:absolute;top:2px;bottom:2px;z-index:0;border-radius:2px}
+.ladder td span{position:relative;z-index:1}
+.ladder tr.mid td{border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);color:var(--muted);text-align:center;font-family:var(--sans)}
+.note{font-size:12px;color:var(--warn);margin:6px 0}
+#chartView,#statsView{flex-direction:column;overflow:auto;padding:14px;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px}
+.card h3{margin:0 0 10px;font-size:13px}
+.charttools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.charttools select{max-width:360px;font-family:var(--mono);font-size:12px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.tile .v{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
+.tile .l{font-size:11.5px;color:var(--muted)}
+.hbars{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;font-size:12px}
+.hbars .b{height:10px;background:var(--accent);border-radius:2px;min-width:1px}
+.hbars .n{font-variant-numeric:tabular-nums;color:var(--muted);text-align:right}
+.cols3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.toptable{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.toptable th{text-align:left;color:var(--muted);font-weight:600;padding:4px 6px;border-bottom:1px solid var(--line)}
+.toptable td{padding:3px 6px;border-bottom:1px solid var(--line2)}
+.toptable td.m{font-family:var(--mono);white-space:pre}
+.toptable tr:hover{background:var(--hover)}
+.link{color:var(--accent);cursor:pointer;background:none;border:none;padding:0 4px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-start;justify-content:center;padding-top:8vh;z-index:50}
+.modal.on{display:flex}
+.mbox{width:min(760px,94vw);max-height:76vh;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.mhead{display:flex;gap:8px;align-items:center;padding:10px;border-bottom:1px solid var(--line)}
+.mhead input{flex:1;font-family:var(--mono);font-size:12px}
+.flist{overflow:auto}
+.flist div{display:grid;grid-template-columns:20px 1fr auto auto;gap:10px;padding:5px 12px;cursor:pointer;font-size:12.5px;align-items:center}
+.flist div:hover{background:var(--hover)}
+.flist .fn{font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.flist .fs{color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px}
+.colpick{position:absolute;right:10px;top:40px;z-index:30;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px;max-height:60vh;overflow:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.colpick.on{display:block}
+.colpick label{display:flex;gap:6px;align-items:center;font-family:var(--mono);font-size:12px;padding:2px 4px}
+.help{font-size:11.5px;color:var(--faint);margin-top:2px}
+.uplot{font-family:var(--sans)}
+.u-legend{font-size:12px}
+#formatView{flex-direction:column;overflow:auto;padding:14px;gap:14px}
+.lead{margin:0 0 8px;line-height:1.6}
+.flow{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap;margin-top:6px}
+.fbox{flex:1;min-width:160px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;background:var(--panel2)}
+.fbox span{font-size:12px;color:var(--muted)}
+.farr{align-self:center;color:var(--faint)}
+.bstrip{display:flex;height:26px;border-radius:5px;overflow:hidden;border:1px solid var(--line);margin:4px 0 2px}
+.bstrip div{display:flex;align-items:center;justify-content:center;border-right:1px solid var(--bg);overflow:hidden;min-width:0}
+.bstrip span{font-family:var(--mono);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 2px}
+.bscale{display:flex;justify-content:space-between;font-size:11px;color:var(--faint);margin-bottom:8px}
+.ltable{width:100%;border-collapse:collapse;font-size:12px}
+.ltable th{text-align:left;color:var(--muted);font-weight:600;padding:4px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+.ltable td{padding:3px 6px;border-bottom:1px solid var(--line2);vertical-align:top}
+.ltable td.doc{color:var(--muted);font-size:12px;line-height:1.5}
+.ltable tr.hot td{background:var(--sel)}
+.nw{white-space:nowrap}
+.sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:baseline}
+.tips{margin:0;padding-left:18px;line-height:1.7}
+.rawd{margin-top:12px}
+.rawd summary{cursor:pointer;color:var(--accent);font-size:12.5px;margin-bottom:8px}
+.rawd .ltable td.doc{font-size:11.5px}
+.hex{font-family:var(--mono);font-size:11px;margin:6px 0 10px;line-height:1.7}
+.hl{display:flex;gap:1px}
+.ho{color:var(--faint);width:38px;flex:none}
+.hb{width:20px;text-align:center;border-radius:2px;cursor:default}
+.hb.hot{outline:1.5px solid var(--text)}
+@media (max-width:820px){.main{grid-template-columns:1fr}aside{max-height:45vh;border-right:none;border-bottom:1px solid var(--line)}.drawer{position:absolute;right:0;top:0;bottom:0;width:min(380px,100%);z-index:10}header{flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="logo">dbn<span>view</span></div>
+  <button id="browseBtn" title="瀏覽檔案">📂 瀏覽</button>
+  <input id="pathInput" placeholder="/path/to/file.dbn.zst" spellcheck="false">
+  <button class="primary" id="openBtn">開啟</button>
+  <select id="tzSel" title="時區">
+    <option value="America/New_York">ET</option><option value="America/Chicago">CT</option>
+    <option value="UTC">UTC</option><option value="Europe/London">London</option>
+    <option value="Asia/Hong_Kong">HKT</option><option value="Asia/Tokyo">JST</option>
+  </select>
+  <select id="tsFmt" title="時間格式">
+    <option value="dt">日期+時間</option><option value="t">只顯示時間</option><option value="ns">原始 ns</option>
+  </select>
+  <button class="ghost" id="themeBtn" title="切換深淺色">◐</button>
+</header>
+<div class="main">
+<aside>
+  <div class="sec" id="metaSec"><h3>檔案</h3><div class="muted" id="metaBox">尚未開啟檔案</div></div>
+  <div class="sec">
+    <h3>篩選</h3>
+    <div class="field sugg">
+      <label>商品 symbol <span class="muted">（子字串；從建議選取為精確比對）</span></label>
+      <input id="symInput" placeholder="例如 SPY   2601 或 ES.v.0" spellcheck="false" class="mono" autocomplete="off">
+      <div class="sugg-list" id="suggList" hidden></div>
+      <div class="chips" id="symChips"></div>
+    </div>
+    <div class="field"><label>instrument_id</label><input id="iidInput" class="mono" placeholder="逗號分隔"></div>
+    <div class="row2">
+      <div class="field"><label>起</label><input id="t0Input" class="mono" placeholder="09:30"></div>
+      <div class="field"><label>迄（不含）</label><input id="t1Input" class="mono" placeholder="10:00"></div>
+    </div>
+    <div class="field"><label>時間欄位</label>
+      <select id="tfSel"><option value="auto">自動（ts_recv 優先）</option><option value="ts_recv">ts_recv</option><option value="ts_event">ts_event</option></select>
+    </div>
+    <div class="field" id="actionField" hidden><label>action</label><div class="checks" id="actionChecks"></div></div>
+    <div class="field" id="sideField" hidden><label>side</label><div class="checks" id="sideChecks"></div></div>
+    <div class="field"><label>where 運算式</label>
+      <input id="whereInput" class="mono" placeholder="size >= 10 and side == 'B'" spellcheck="false">
+      <div class="help">欄位名直接用；價格為實際數值，未定義為 NaN。支援 and/or/not、+ - * /、in、abs()。</div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>最多載入列數</label><input id="capInput" class="mono" value="1000000"></div>
+      <div class="field"><label>&nbsp;</label><label class="checks"><label title="達上限後繼續掃完整個檔案以取得完整統計"><input type="checkbox" id="fullChk">掃完整檔</label></label></div>
+    </div>
+    <div class="btns"><button class="primary" id="scanBtn" disabled>掃描</button><button id="stopBtn" disabled>停止</button><button id="resetBtn" title="清除篩選">清除</button></div>
+  </div>
+  <div class="sec">
+    <h3>進度</h3>
+    <div class="progress"><i id="progBar"></i></div>
+    <div class="status" id="statusBox">—</div>
+    <div class="err" id="errBox"></div>
+  </div>
+</aside>
+<section class="content">
+  <div class="tabs">
+    <button class="tab on" data-tab="table">表格</button>
+    <button class="tab" data-tab="chart">圖表</button>
+    <button class="tab" data-tab="stats">統計</button>
+    <button class="tab" data-tab="format">格式說明</button>
+    <div class="spacer"></div>
+    <div class="tools" id="tableTools">
+      <input id="seekInput" class="mono" placeholder="跳到時間 15:45" title="在已載入的列中跳到該時間">
+      <button id="colBtn">欄位</button>
+      <button id="csvBtn" title="匯出目前已載入的列">CSV</button>
+    </div>
+  </div>
+  <div class="view on" id="tableView">
+    <div class="grid" id="grid" tabindex="0">
+      <div class="ghead" id="ghead"></div>
+      <div class="gbody" id="gbody"></div>
+      <div class="empty" id="emptyBox"><div class="big">開啟一個 .dbn / .dbn.zst 檔案</div><div>直接串流解 zstd，不需轉檔。點左上「瀏覽」或貼上路徑。</div></div>
+    </div>
+    <div class="drawer" id="drawer"></div>
+    <div class="colpick" id="colPick"></div>
+  </div>
+  <div class="view" id="chartView">
+    <div class="card">
+      <div class="charttools">
+        <select id="chartInst"></select>
+        <input id="chartIid" class="mono" placeholder="或輸入 instrument_id" style="width:170px">
+        <button id="chartBtn">畫圖</button>
+        <span class="muted" id="chartNote"></span>
+      </div>
+      <div id="priceChart"></div>
+    </div>
+    <div class="card"><h3>每分鐘筆數（符合篩選）</h3><div id="actChart"></div></div>
+  </div>
+  <div class="view" id="statsView"><div class="muted">尚無統計</div></div>
+  <div class="view" id="formatView"><div class="muted">先開啟一個檔案。</div></div>
+</section>
+</div>
+</div>
+<div class="modal" id="fileModal">
+  <div class="mbox">
+    <div class="mhead"><button id="upBtn" title="上一層">↑</button><input id="dirInput" spellcheck="false"><button id="goBtn">前往</button><button class="ghost" id="closeModal">✕</button></div>
+    <div class="flist" id="flist"></div>
+  </div>
+</div>
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const ROWH = 22, PAGE = 400;
+const S = {
+  init:null, path:null, meta:null, job:null, status:null, stats:null,
+  cols:[], kinds:{}, hidden:new Set(), pages:new Map(), pending:new Set(),
+  sel:null, syms:[], tz:'America/New_York', tsfmt:'dt', pubs:{}, polling:false,
+};
+try{ const t=localStorage.getItem('dbnview.theme'); if(t) document.documentElement.dataset.theme=t;
+     const z=localStorage.getItem('dbnview.tz'); if(z) S.tz=z;
+     const f=localStorage.getItem('dbnview.tsfmt'); if(f) S.tsfmt=f;
+     const h=localStorage.getItem('dbnview.hidden'); if(h) S.hidden=new Set(JSON.parse(h)); }catch(e){}
+$('#tzSel').value=S.tz; $('#tsFmt').value=S.tsfmt;
+
+async function api(path, params, body){
+  const qs = params ? '?'+new URLSearchParams(params) : '';
+  const r = await fetch('/api/'+path+qs, body ? {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)} : {});
+  const j = await r.json().catch(()=>({error:'HTTP '+r.status}));
+  if(!r.ok || j.error) throw new Error(j.error || ('HTTP '+r.status));
+  return j;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const nf = new Intl.NumberFormat('en-US');
+const fmtN = n => n==null ? '—' : nf.format(n);
+function fmtBytes(b){ if(b==null) return '—'; const u=['B','KB','MB','GB','TB']; let i=0; while(b>=1024&&i<4){b/=1024;i++} return b.toFixed(i?1:0)+' '+u[i]; }
+function fmtDur(s){ if(s<60) return s.toFixed(1)+'s'; const m=Math.floor(s/60); return m+'m'+String(Math.round(s%60)).padStart(2,'0')+'s'; }
+
+// ---- time formatting -------------------------------------------------------
+const dtfCache = {};
+function dtf(tz){ return dtfCache[tz] || (dtfCache[tz] = new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'})); }
+const secCache = new Map();
+function fmtSec(sec, tz){
+  const k = tz+sec; let v = secCache.get(k);
+  if(v===undefined){
+    const p = {}; for(const x of dtf(tz).formatToParts(new Date(sec*1000))) p[x.type]=x.value;
+    v = [`${p.year}-${p.month}-${p.day}`, `${p.hour}:${p.minute}:${p.second}`];
+    if(secCache.size>50000) secCache.clear(); secCache.set(k,v);
+  }
+  return v;
+}
+function fmtTs(ns, mode){
+  if(ns==null) return null;
+  mode = mode || S.tsfmt;
+  if(mode==='ns') return ns;
+  const s = String(ns); const sec = Number(s.slice(0,-9)||'0'); const frac = s.slice(-9).padStart(9,'0');
+  const [d,t] = fmtSec(sec, S.tz);
+  return mode==='t' ? `${t}.${frac}` : `${d} ${t}.${frac}`;
+}
+function fmtPx(v){ if(v==null) return null; let s = (Math.round(v*1e9)/1e9).toString(); if(s.includes('e')) s=v.toFixed(9).replace(/0+$/,''); return s; }
+const FLAGS=[[128,'LAST','L'],[64,'TOB','T'],[32,'SNAPSHOT','S'],[16,'MBP','M'],[8,'BAD_TS_RECV','!t'],[4,'MAYBE_BAD_BOOK','!b'],[2,'PUBLISHER_SPECIFIC','P']];
+const flagNames = f => FLAGS.filter(x=>f&x[0]).map(x=>x[1]).join(' | ') || '0';
+const flagShort = f => FLAGS.filter(x=>f&x[0]).map(x=>x[2]).join('');
+
+// ---- column layout -----------------------------------------------------------
+function colWidth(c){
+  const k=S.kinds[c];
+  if(c==='_rec') return 84;
+  if(k==='ts') return S.tsfmt==='t' ? 150 : 232;
+  if(k==='sym') return Math.max(110, Math.min(260, (S.symW||10)*7.4+20));
+  if(k==='px') return 104; if(k==='chr') return 50; if(k==='flags') return 64; if(k==='pub') return 76;
+  if(k==='str') return 200;
+  if(/sz|size|ct_|count|qty|quantity|volume/.test(c)) return 76;
+  if(c==='rtype' || c==='depth' || c==='channel_id') return 54;
+  if(c==='order_id' || c==='raw_instrument_id') return 150;
+  return 108;
+}
+const QTY = /sz|size|ct_|count|qty|quantity|volume/;
+const visCols = () => S.cols.filter(c => !S.hidden.has(c));
+const colLabel = c => c==='_rec' ? '#rec' : c;
+function cell(c, v){
+  const k=S.kinds[c];
+  if(v==null) return ['<span class="nil">—</span>', 'r'];
+  switch(k){
+    case 'ts': return [esc(fmtTs(v)), ''];
+    case 'px': return [esc(fmtPx(v)), 'r'];
+    case 'chr':
+      if(c==='side') return [`<span class="s${esc(v)}">${esc(v)}</span>`, ''];
+      if(c==='action') return [`<span class="badge a${esc(v)}">${esc(v)}</span>`, ''];
+      return [esc(v), ''];
+    case 'flags': return [`<span title="${flagNames(v)}">${v ? esc(flagShort(v)) : '<span class=nil>·</span>'}</span>`, ''];
+    case 'pub': { const n=S.pubs[v]; return [`<span title="${esc(n||'')}">${esc(n ? n.split('.').pop() : v)}</span>`, '']; }
+    case 'sym': case 'str': return [esc(v), ''];
+    default: return [esc(typeof v==='number' && QTY.test(c) ? nf.format(v) : v), 'r'];
+  }
+}
+function renderHead(){
+  const h=$('#ghead');
+  h.innerHTML = visCols().map(c=>`<div style="width:${colWidth(c)}px" class="${['ts','sym','str','chr','flags','pub'].includes(S.kinds[c])?'':'r'}" title="${esc(c+'\n'+fieldDoc(c))}">${esc(colLabel(c))}</div>`).join('');
+}
+function totalRows(){ return S.status ? S.status.rows : 0; }
+function renderBody(){
+  const g=$('#grid'), body=$('#gbody'); const n=totalRows();
+  body.style.height = (n*ROWH)+'px';
+  $('#emptyBox').style.display = n ? 'none' : 'flex';
+  if(!n){ body.innerHTML=''; return; }
+  const top = Math.max(0, g.scrollTop - 30); const first = Math.floor(top/ROWH);
+  const last = Math.min(n-1, Math.ceil((g.scrollTop + g.clientHeight)/ROWH)+2);
+  const cols=visCols(); const idx = cols.map(c=>S.cols.indexOf(c)); const widths=cols.map(colWidth);
+  let html='';
+  for(let i=first;i<=last;i++){
+    const r = getRow(i);
+    html += `<div class="grow${S.sel===i?' sel':''}" data-i="${i}" style="top:${i*ROWH}px;height:${ROWH}px;line-height:${ROWH-1}px">`;
+    if(!r){ html += `<div class="nil" style="width:${widths[0]}px">…</div></div>`; continue; }
+    for(let j=0;j<cols.length;j++){ const [h,cl]=cell(cols[j], r[idx[j]]); html += `<div class="${cl}" style="width:${widths[j]}px">${h}</div>`; }
+    html += '</div>';
+  }
+  body.innerHTML = html;
+}
+function getRow(i){
+  const p = Math.floor(i/PAGE); const pg = S.pages.get(p);
+  if(pg) return pg[i - p*PAGE];
+  fetchPage(p); return null;
+}
+async function fetchPage(p){
+  if(S.pending.has(p) || !S.job) return;
+  const job=S.job; S.pending.add(p);
+  try{
+    const res = await api('rows',{id:job, offset:p*PAGE, limit:PAGE});
+    if(job!==S.job) return;
+    // a page is complete only if the scan already stored all of it
+    if(res.rows.length===PAGE || (S.status && S.status.done)) S.pages.set(p, res.rows);
+    else S.pages.set(p, res.rows), setTimeout(()=>{ if(S.pages.get(p)===res.rows) S.pages.delete(p); }, 600);
+    const sw = Math.max(...res.rows.map(r=>{const v=r[S.cols.indexOf('symbol')]; return v?v.length:0}), 0);
+    if(sw > (S.symW||0)){ S.symW=sw; renderHead(); }
+    renderBody();
+  }catch(e){ showErr(e); } finally { S.pending.delete(p); }
+}
+$('#grid').addEventListener('scroll', ()=>requestAnimationFrame(renderBody));
+window.addEventListener('resize', ()=>requestAnimationFrame(renderBody));
+$('#gbody').addEventListener('click', e=>{
+  const el = e.target.closest('.grow'); if(!el) return;
+  S.sel = +el.dataset.i; renderBody(); showDetail(S.sel);
+});
+$('#grid').addEventListener('keydown', e=>{
+  if(S.sel==null || !['ArrowDown','ArrowUp','PageDown','PageUp'].includes(e.key)) return;
+  e.preventDefault();
+  const step = e.key.startsWith('Page') ? Math.floor($('#grid').clientHeight/ROWH) : 1;
+  S.sel = Math.max(0, Math.min(totalRows()-1, S.sel + (e.key.endsWith('Down')?step:-step)));
+  scrollToRow(S.sel, true); showDetail(S.sel);
+});
+function scrollToRow(i, keep){
+  const g=$('#grid'); const y=i*ROWH;
+  if(!keep || y < g.scrollTop+ROWH || y > g.scrollTop+g.clientHeight-2*ROWH) g.scrollTop = Math.max(0, y - (keep? g.clientHeight-3*ROWH : g.clientHeight/3));
+  renderBody();
+}
+
+// ---- detail drawer ------------------------------------------------------------
+function rowObj(i){ const r=getRow(i); if(!r) return null; const o={}; S.cols.forEach((c,j)=>o[c]=r[j]); return o; }
+function ladderHTML(bids, asks, opts={}){
+  const mx = Math.max(1, ...bids.map(b=>b[1]||0), ...asks.map(a=>a[1]||0));
+  const ct = opts.ct;
+  const row = (lv, side) => {
+    const w = Math.round(100*(lv[1]||0)/mx); const col = side==='A' ? 'var(--ask-weak)' : 'var(--bid-weak)';
+    return `<tr><td class="s${side}"><span>${esc(fmtPx(lv[0]))}</span></td><td><div class="bar" style="right:0;width:${w}%;background:${col}"></div><span>${fmtN(lv[1])}</span></td>${ct?`<td class="muted"><span>${lv[2]==null?'':(typeof lv[2]==='number'?fmtN(lv[2]):esc(lv[2]))}</span></td>`:''}</tr>`;
+  };
+  let spread = '';
+  if(bids.length && asks.length){ const sp = asks[0][0]-bids[0][0]; spread = `spread ${fmtPx(Math.round(sp*1e9)/1e9)} · mid ${fmtPx(Math.round((asks[0][0]+bids[0][0])/2*1e9)/1e9)}`; }
+  return `<table class="ladder"><tr><th>價格</th><th>數量</th>${ct?`<th>${esc(ct)}</th>`:''}</tr>`+
+    asks.slice().reverse().map(a=>row(a,'A')).join('') + `<tr class="mid"><td colspan="${ct?3:2}">${spread||'—'}</td></tr>` + bids.map(b=>row(b,'B')).join('') + '</table>';
+}
+function levelsFromRow(o){
+  const bids=[], asks=[]; let ct=null;
+  for(let i=0;i<10;i++){
+    const k=String(i).padStart(2,'0');
+    if(!('bid_px_'+k in o)) break;
+    const c = ('bid_ct_'+k in o) ? 'ct' : (('bid_pb_'+k in o) ? 'pb' : null); if(c) ct = c==='ct'?'筆數':'publisher';
+    const pv = c==='pb' ? (x=>{const n=S.pubs[x]; return n?n.split('.').pop():x;}) : (x=>x);
+    if(o['bid_px_'+k]!=null) bids.push([o['bid_px_'+k], o['bid_sz_'+k], c?pv(o[`bid_${c}_`+k]):null]);
+    if(o['ask_px_'+k]!=null) asks.push([o['ask_px_'+k], o['ask_sz_'+k], c?pv(o[`ask_${c}_`+k]):null]);
+  }
+  return {bids, asks, ct, any: ('bid_px_00' in o)};
+}
+function showDetail(i){
+  const o=rowObj(i); const d=$('#drawer'); d.classList.add('on');
+  if(!o){ d.innerHTML='<div class="muted">載入中…</div>'; setTimeout(()=>S.sel===i&&showDetail(i),150); return; }
+  let h = `<h4><span>第 ${fmtN(i)} 列 <span class="muted">· rec #${fmtN(o._rec)}</span></span><button class="ghost" onclick="closeDrawer()">✕</button></h4>`;
+  const lv = levelsFromRow(o);
+  if(lv.any) h += ladderHTML(lv.bids, lv.asks, {ct: lv.ct});
+  if(o.order_id!==undefined && S.kinds.action){
+    h += `<button id="bookBtn" style="width:100%;margin-bottom:8px">重建此刻的訂單簿（MBO）</button><div id="bookBox"></div>`;
+  }
+  h += '<table class="dtable">';
+  for(const c of S.cols){
+    if(!(c in o)) continue; let v=o[c]; let extra='';
+    const k=S.kinds[c];
+    if(v==null) v='—';
+    else if(k==='ts'){ extra = `<div class="muted">${esc(v)}</div>`; v = fmtTs(v,'dt') + ' ' + S.tz.split('/').pop(); }
+    else if(k==='flags') v = `${v} = ${flagNames(v)}`;
+    else if(k==='pub') v = `${v} = ${S.pubs[v]||'?'}`;
+    else if(k==='px') v = fmtPx(v);
+    h += `<tr title="${esc(fieldDoc(c))}"><td>${esc(colLabel(c))}</td><td>${esc(v)}${extra}</td></tr>`;
+  }
+  h += '</table>';
+  h += `<details class="rawd" id="rawDetails"${S.rawOpen?' open':''}><summary>原始位元組 / layout</summary><div id="rawBox"></div></details>`;
+  d.innerHTML = h;
+  const rd=$('#rawDetails'); rd.addEventListener('toggle', ()=>{ S.rawOpen=rd.open; if(rd.open) loadRaw(i, $('#rawBox')); }); if(rd.open) loadRaw(i, $('#rawBox'));
+  const bb=$('#bookBtn'); if(bb) bb.onclick = ()=>loadBook(i);
+}
+window.closeDrawer = ()=>{ $('#drawer').classList.remove('on'); S.sel=null; renderBody(); };
+async function loadBook(i){
+  const box=$('#bookBox'); box.innerHTML='<div class="muted">重建中…</div>';
+  try{
+    const b = await api('book',{id:S.job,row:i,depth:15});
+    let h = `<div class="muted" style="font-size:12px">${esc(b.symbol||b.instrument_id)} · 套用 ${fmtN(b.applied)} 筆 MBO · ${fmtN(b.orders)} 張掛單</div>`;
+    if(!b.safe) h += `<div class="note">目前篩選可能漏掉此商品較早的訊息（時間/action/side/where），簿可能不正確。</div>`;
+    if(!b.had_clear) h += `<div class="note">檔案開頭沒有清簿 (R) / 快照訊息，開始前已存在的掛單不在簿中。</div>`;
+    h += ladderHTML(b.bids, b.asks, {ct:'掛單數'});
+    box.innerHTML = h;
+  }catch(e){ box.innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+}
+
+// ---- file open / metadata ---------------------------------------------------
+async function openFile(path){
+  path = path.trim(); if(!path) return;
+  showErr(null);
+  try{
+    const m = await api('meta',{path});
+    S.path = m.path; S.meta = m; $('#pathInput').value = m.path;
+    try{ localStorage.setItem('dbnview.last', m.path); }catch(e){}
+    document.title = m.path.split('/').pop() + ' · dbnview';
+    renderMeta(); setupFilterFields(); if(currentTab()==='format') renderFormat();
+    $('#scanBtn').disabled=false;
+    startScan();
+  }catch(e){ showErr(e); }
+}
+function renderMeta(){
+  const m=S.meta.metadata, rec=S.meta.record;
+  const rng = `${fmtTs(m.start,'dt')||'—'}<br>${m.end?fmtTs(m.end,'dt'):'—'}`;
+  const syms = m.symbols_preview.slice(0,6).map(esc).join(', ') + (m.n_symbols>6?` … (+${m.n_symbols-6})`:'');
+  $('#metaBox').innerHTML = `<dl class="kv">
+    <dt>檔案</dt><dd title="${esc(S.meta.path)}">${esc(S.meta.path.split('/').pop())}</dd>
+    <dt>大小</dt><dd>${fmtBytes(S.meta.size)}${S.meta.compressed?' (zst)':''}</dd>
+    <dt>dataset</dt><dd>${esc(m.dataset)}</dd>
+    <dt>schema</dt><dd>${esc(m.schema||'mixed')}${rec?` <span class=muted>· ${rec.size}B/rec</span>`:''}</dd>
+    <dt>DBN</dt><dd>v${m.version}${m.ts_out?' · ts_out':''}</dd>
+    <dt>時間</dt><dd>${rng}</dd>
+    <dt>stype</dt><dd>${esc(m.stype_in||'—')} → ${esc(m.stype_out)}</dd>
+    <dt>symbols</dt><dd>${syms||'—'}</dd>
+    <dt>mappings</dt><dd>${fmtN(m.n_mappings)} · ${fmtN(m.n_instruments)} ids</dd>
+    ${m.limit?`<dt>limit</dt><dd>${fmtN(m.limit)}</dd>`:''}
+    ${m.partial.length?`<dt>partial</dt><dd>${m.partial.map(esc).join(', ')}</dd>`:''}
+    ${m.not_found.length?`<dt>not found</dt><dd>${m.not_found.map(esc).join(', ')}</dd>`:''}
+  </dl>`;
+}
+function setupFilterFields(){
+  const rec=S.meta.record, f = rec ? rec.fields : [];
+  const kinds = rec ? rec.kinds : {};
+  const act = f.includes('action') && kinds.action==='chr', side = f.includes('side');
+  $('#actionField').hidden=!act; $('#sideField').hidden=!side;
+  $('#actionChecks').innerHTML = ['A','C','M','R','T','F','N'].map(a=>`<label><input type="checkbox" value="${a}">${a}</label>`).join('');
+  $('#sideChecks').innerHTML = ['B','A','N'].map(a=>`<label><input type="checkbox" value="${a}">${a}</label>`).join('');
+  $('#tfSel').querySelectorAll('option').forEach(o=>{ if(o.value!=='auto') o.disabled = !f.includes(o.value); });
+}
+
+// ---- scanning -------------------------------------------------------------------
+function buildQuery(){
+  const checked = sel => [...document.querySelectorAll(sel+' input:checked')].map(x=>x.value);
+  return { symbols:S.syms, iids:$('#iidInput').value, t0:$('#t0Input').value, t1:$('#t1Input').value,
+    tz:S.tz, tfield:$('#tfSel').value, actions: $('#actionField').hidden?[]:checked('#actionChecks'),
+    sides: $('#sideField').hidden?[]:checked('#sideChecks'), where:$('#whereInput').value,
+    cap: parseInt($('#capInput').value.replace(/[,_ ]/g,''))||1000000, full:$('#fullChk').checked };
+}
+async function startScan(){
+  if(!S.path) return;
+  showErr(null);
+  try{
+    const st = await api('scan', null, {path:S.path, query:buildQuery(), cancel:S.job});
+    S.job = st.id; S.status = st; S.pages.clear(); S.pending.clear(); S.sel=null; S.stats=null; S.symW=0;
+    $('#drawer').classList.remove('on'); $('#grid').scrollTop=0;
+    applyColumns(st); renderBody(); updateStatus();
+    $('#stopBtn').disabled=false;
+    poll();
+  }catch(e){ showErr(e); }
+}
+function applyColumns(st){
+  if(st.columns.join()!==S.cols.join()){ S.cols = st.columns.slice(); S.kinds = st.kinds; renderHead(); renderColPick(); }
+}
+let pollT=null, lastStats=0;
+async function poll(){
+  clearTimeout(pollT);
+  const job=S.job; if(!job) return;
+  try{
+    const want = Date.now()-lastStats > 1200;
+    const st = await api('job',{id:job, stats: want?1:0});
+    if(job!==S.job) return;
+    const prevRows = S.status ? S.status.rows : 0;
+    S.status = st; applyColumns(st);
+    if(st.stats){ S.stats=st.stats; lastStats=Date.now(); if(currentTab()==='stats') renderStats(); }
+    if(st.rows!==prevRows){ for(const [p,rows] of S.pages) if(rows.length<PAGE) S.pages.delete(p); renderBody(); }
+    updateStatus();
+    if(!st.done){ pollT=setTimeout(poll, 300); return; }
+    $('#stopBtn').disabled=true;
+    if(!st.stats){ const s2 = await api('job',{id:job,stats:1}); S.stats=s2.stats; }
+    if(st.error) showErr(st.error);
+    fillChartInst(); if(currentTab()==='stats') renderStats(); if(currentTab()==='chart') drawCharts();
+  }catch(e){ showErr(e); }
+}
+function updateStatus(){
+  const st=S.status; if(!st){ $('#statusBox').textContent='—'; return; }
+  const pct = st.bytes_total ? Math.min(100, 100*st.bytes_done/st.bytes_total) : 0;
+  $('#progBar').style.width = (st.done && !st.truncated && !st.cancelled ? 100 : pct)+'%';
+  const rate = st.elapsed>0 ? st.bytes_done/st.elapsed : 0;
+  let state = st.error ? '錯誤' : st.cancelled ? '已停止' : !st.done ? '掃描中' : st.truncated ? '達上限，已停止（未掃完）' : '完成';
+  $('#statusBox').innerHTML = `<b>${state}</b> · ${fmtDur(st.elapsed)}<br>
+    已載入 <b>${fmtN(st.rows)}</b> 列${st.rows>=st.cap?'（上限）':''}<br>
+    符合 ${fmtN(st.matched)} / 已讀 ${fmtN(st.seen)} 筆<br>
+    ${fmtBytes(st.bytes_done)} / ${fmtBytes(st.bytes_total)} (${pct.toFixed(1)}%) · ${fmtBytes(rate)}/s
+    ${st.filter.length?`<br><span class="muted">${esc(st.filter.join(' · '))}</span>`:''}`;
+}
+function showErr(e){ $('#errBox').textContent = e ? (e.message||String(e)) : ''; }
+$('#scanBtn').onclick = startScan;
+$('#stopBtn').onclick = async ()=>{ if(S.job){ try{ await api('cancel',{id:S.job}); }catch(e){} } };
+$('#resetBtn').onclick = ()=>{ S.syms=[]; renderChips(); ['#iidInput','#t0Input','#t1Input','#whereInput'].forEach(s=>$(s).value=''); document.querySelectorAll('.checks input').forEach(x=>x.checked=false); $('#tfSel').value='auto'; };
+for(const id of ['#iidInput','#t0Input','#t1Input','#whereInput','#capInput']) $(id).addEventListener('keydown', e=>{ if(e.key==='Enter') startScan(); });
+
+// ---- symbol search ---------------------------------------------------------------
+let suggT=null, suggIdx=-1, suggItems=[];
+function renderChips(){
+  $('#symChips').innerHTML = S.syms.map((s,i)=>`<span class="chip" title="${s.endsWith('$')?'精確':'子字串'}">${esc(s.endsWith('$')?s.slice(0,-1):s+'*')}<b data-i="${i}">×</b></span>`).join('');
+}
+$('#symChips').addEventListener('click', e=>{ const b=e.target.closest('b'); if(!b) return; S.syms.splice(+b.dataset.i,1); renderChips(); });
+$('#symInput').addEventListener('input', ()=>{
+  clearTimeout(suggT); const q=$('#symInput').value;
+  if(!q.trim() || !S.path){ $('#suggList').hidden=true; return; }
+  suggT=setTimeout(async ()=>{
+    try{
+      const r = await api('symbols',{path:S.path, q, limit:60}); suggItems=r.items; suggIdx=-1;
+      const L=$('#suggList');
+      L.innerHTML = `<div data-raw="1" class="muted"><span>子字串「${esc(q)}」</span><span>${fmtN(r.total)} 個</span></div>` +
+        r.items.map((it,i)=>`<div data-i="${i}"><span>${esc(it[0])}</span><span class="muted">${it[2]>1?it[2]+' ids':it[1][0]}</span></div>`).join('');
+      L.hidden=false;
+    }catch(e){}
+  },150);
+});
+function addSym(s){ if(s && !S.syms.includes(s)) S.syms.push(s); renderChips(); $('#symInput').value=''; $('#suggList').hidden=true; }
+$('#suggList').addEventListener('mousedown', e=>{
+  const d=e.target.closest('div[data-i],div[data-raw]'); if(!d) return; e.preventDefault();
+  if(d.dataset.raw) addSym($('#symInput').value.trim()); else addSym(suggItems[+d.dataset.i][0]+'$');
+});
+$('#symInput').addEventListener('keydown', e=>{
+  const L=$('#suggList'); const items=[...L.querySelectorAll('div[data-i]')];
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); suggIdx=Math.max(-1,Math.min(items.length-1,suggIdx+(e.key==='ArrowDown'?1:-1))); items.forEach((x,i)=>x.classList.toggle('on',i===suggIdx)); if(items[suggIdx]) items[suggIdx].scrollIntoView({block:'nearest'}); }
+  else if(e.key==='Enter'){ e.preventDefault(); const v=$('#symInput').value.trim(); if(suggIdx>=0 && suggItems[suggIdx]) addSym(suggItems[suggIdx][0]+'$'); else if(v) addSym(v); else startScan(); }
+  else if(e.key==='Escape') L.hidden=true;
+});
+$('#symInput').addEventListener('blur', ()=>setTimeout(()=>$('#suggList').hidden=true,150));
+
+// ---- tabs / tools ----------------------------------------------------------------
+const currentTab = () => document.querySelector('.tab.on').dataset.tab;
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));
+  for(const v of ['table','chart','stats','format']) $('#'+v+'View').classList.toggle('on', v===t.dataset.tab);
+  $('#tableTools').style.visibility = t.dataset.tab==='table' ? 'visible' : 'hidden';
+  if(t.dataset.tab==='stats') renderStats();
+  if(t.dataset.tab==='format') renderFormat();
+  if(t.dataset.tab==='chart') drawCharts();
+  if(t.dataset.tab==='table') renderBody();
+});
+$('#seekInput').addEventListener('keydown', async e=>{
+  if(e.key!=='Enter' || !S.job) return;
+  try{ const r = await api('seek',{id:S.job, t:$('#seekInput').value, tz:S.tz}); S.sel=Math.min(r.row, totalRows()-1); scrollToRow(S.sel); showDetail(S.sel); }catch(err){ showErr(err); }
+});
+$('#csvBtn').onclick = ()=>{ if(S.job) location.href = '/api/export?'+new URLSearchParams({id:S.job, tz:S.tz}); };
+function renderColPick(){
+  $('#colPick').innerHTML = `<div style="display:flex;gap:6px;margin-bottom:6px"><button id="cpAll">全選</button><button id="cpMin">精簡</button></div>` +
+    S.cols.map(c=>`<label><input type="checkbox" value="${esc(c)}" ${S.hidden.has(c)?'':'checked'}>${esc(colLabel(c))}</label>`).join('');
+}
+const saveHidden = ()=>{ try{ localStorage.setItem('dbnview.hidden', JSON.stringify([...S.hidden])); }catch(e){} renderHead(); renderBody(); };
+$('#colBtn').onclick = e=>{ e.stopPropagation(); $('#colPick').classList.toggle('on'); };
+$('#colPick').addEventListener('click', e=>e.stopPropagation());
+$('#colPick').addEventListener('change', e=>{ const c=e.target.value; e.target.checked ? S.hidden.delete(c) : S.hidden.add(c); saveHidden(); });
+$('#colPick').addEventListener('click', e=>{
+  if(e.target.id==='cpAll'){ S.hidden.clear(); }
+  else if(e.target.id==='cpMin'){ ['_rec','rtype','publisher_id','ts_in_delta','sequence','channel_id','ts_event','length'].forEach(c=>S.hidden.add(c)); }
+  else return;
+  renderColPick(); saveHidden();
+});
+document.addEventListener('click', ()=>$('#colPick').classList.remove('on'));
+$('#tzSel').onchange = ()=>{ S.tz=$('#tzSel').value; try{localStorage.setItem('dbnview.tz',S.tz)}catch(e){} if(S.meta) renderMeta(); if(currentTab()==='format') renderFormat(); renderHead(); renderBody(); if(S.sel!=null) showDetail(S.sel); if(currentTab()==='chart') drawCharts(); };
+$('#tsFmt').onchange = ()=>{ S.tsfmt=$('#tsFmt').value; try{localStorage.setItem('dbnview.tsfmt',S.tsfmt)}catch(e){} renderHead(); renderBody(); };
+$('#themeBtn').onclick = ()=>{ const r=document.documentElement; const cur = r.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'); r.dataset.theme = cur==='light'?'dark':'light'; try{localStorage.setItem('dbnview.theme', r.dataset.theme)}catch(e){} if(currentTab()==='chart') drawCharts(); };
+if(!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: light)').matches) document.documentElement.dataset.theme='light';
+
+// ---- stats ---------------------------------------------------------------------
+function hbars(obj){
+  const e = Object.entries(obj||{}).sort((a,b)=>b[1]-a[1]); if(!e.length) return '<div class="muted">—</div>';
+  const mx = e[0][1], tot = e.reduce((s,x)=>s+x[1],0);
+  return '<div class="hbars">'+e.map(([k,v])=>`<span class="mono">${esc(k)}</span><div class="b" style="width:${(100*v/mx).toFixed(1)}%"></div><span class="n">${fmtN(v)} · ${(100*v/tot).toFixed(1)}%</span>`).join('')+'</div>';
+}
+function renderStats(){
+  const v=$('#statsView'); const st=S.status, s=S.stats;
+  if(!st || !s){ v.innerHTML='<div class="muted">尚無統計</div>'; return; }
+  const span = st.tmin && st.tmax ? `${fmtTs(st.tmin,'dt')}<br>${fmtTs(st.tmax,'dt')}` : '—';
+  const partial = !st.done ? '（掃描中）' : (st.truncated ? '（僅涵蓋已掃描部分）' : '');
+  v.innerHTML = `
+  <div class="tiles">
+    <div class="tile"><div class="l">符合篩選 ${partial}</div><div class="v">${fmtN(st.matched)}</div></div>
+    <div class="tile"><div class="l">已讀紀錄</div><div class="v">${fmtN(st.seen)}</div></div>
+    <div class="tile"><div class="l">商品數</div><div class="v">${fmtN(s.n_instruments)}</div></div>
+    <div class="tile"><div class="l">時間範圍 (${esc(S.tz.split('/').pop())})</div><div class="mono" style="font-size:12px;margin-top:4px">${span}</div></div>
+  </div>
+  <div class="cols3">
+    <div class="card"><h3>record type</h3>${hbars(s.rtype)}</div>
+    <div class="card"><h3>action</h3>${hbars(s.action)}</div>
+    <div class="card"><h3>side</h3>${hbars(s.side)}</div>
+  </div>
+  <div class="card"><h3>前 ${s.top.length} 個商品（依筆數）</h3>
+    <table class="toptable"><tr><th>symbol</th><th>instrument_id</th><th style="text-align:right">筆數</th><th style="text-align:right">占比</th><th></th></tr>
+    ${s.top.map(([iid,c,sym])=>`<tr><td class="m">${esc(sym||'—')}</td><td class="m">${iid}</td><td style="text-align:right">${fmtN(c)}</td><td style="text-align:right">${(100*c/Math.max(1,st.matched)).toFixed(2)}%</td><td style="white-space:nowrap"><button class="link" data-f="${iid}">篩選</button><button class="link" data-c="${iid}">圖表</button></td></tr>`).join('')}
+    </table></div>`;
+  v.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{ $('#iidInput').value=b.dataset.f; S.syms=[]; renderChips(); document.querySelector('[data-tab=table]').click(); startScan(); });
+  v.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{ $('#chartIid').value=''; fillChartInst(b.dataset.c); document.querySelector('[data-tab=chart]').click(); });
+}
+
+// ---- charts --------------------------------------------------------------------
+let priceU=null, actU=null;
+function fillChartInst(sel){
+  const s=S.stats; const box=$('#chartInst'); if(!s) return;
+  const cur = sel || box.value;
+  box.innerHTML = s.top.slice(0,200).map(([iid,c,sym])=>`<option value="${iid}">${esc((sym||'')+'  #'+iid+'  ('+fmtN(c)+')')}</option>`).join('');
+  if(cur) box.value = cur;
+}
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const PALETTE = ['--bid','--ask','--accent','--warn'];
+function seriesColor(name, i){
+  if(/^bid_px/.test(name)) return cssv('--bid'); if(/^ask_px/.test(name)) return cssv('--ask');
+  if(name==='price'||name==='close') return cssv('--accent');
+  return ['#b48cff','#e3b341','#4fc1c9','#f08bd0','#9aa4b1'][i%5];
+}
+function axisOpts(){ const c=cssv('--muted'), g=cssv('--line2'); return {stroke:c, grid:{stroke:g,width:1}, ticks:{stroke:g,width:1}}; }
+async function drawCharts(){
+  if(typeof uPlot==='undefined'){ $('#priceChart').innerHTML='<div class="muted">uPlot 無法從 CDN 載入（離線？）。</div>'; return; }
+  if(!S.job || !S.stats){ return; }
+  if(!$('#chartInst').options.length) fillChartInst();
+  const iid = $('#chartIid').value.trim() || $('#chartInst').value;
+  const W = Math.max(300, $('#priceChart').clientWidth || ($('#chartView').clientWidth-60));
+  try{
+    const r = await api('chart',{id:S.job, iid, max:Math.min(20000, W*4)});
+    const names = Object.keys(r.series);
+    $('#chartNote').textContent = r.x.length ? `${r.symbol||''} #${r.instrument_id} · ${fmtN(r.n)} 筆${r.downsampled?'（已降採樣 min/max）':''}${S.status.truncated?' · 僅已載入列':''}` : '此商品在已載入列中沒有價格資料';
+    if(priceU){ priceU.destroy(); priceU=null; }
+    if(r.x.length && names.length){
+      const tz=S.tz;
+      priceU = new uPlot({ width:W, height:380, tzDate: ts=>uPlot.tzDate(new Date(ts*1e3), tz),
+        scales:{x:{time:true}}, cursor:{drag:{x:true,y:false}},
+        series:[{}].concat(names.map((n,i)=>({label:n, stroke:seriesColor(n,i), width:1.25, spanGaps:false, points:{show:r.x.length<300}, value:(u,v)=>v==null?'—':fmtPx(v)}))),
+        axes:[axisOpts(), Object.assign(axisOpts(),{size:70})] }, [r.x].concat(names.map(n=>r.series[n])), $('#priceChart'));
+    }
+  }catch(e){ showErr(e); }
+  // activity per minute
+  if(actU){ actU.destroy(); actU=null; }
+  const m = S.stats.minutes || [];
+  if(m.length){
+    const x = m.map(p=>p[0]*60), y = m.map(p=>p[1]); const tz=S.tz;
+    actU = new uPlot({ width:W, height:170, tzDate: ts=>uPlot.tzDate(new Date(ts*1e3), tz), scales:{x:{time:true}}, legend:{show:false},
+      series:[{}, {label:'筆數/分', stroke:cssv('--accent'), fill:cssv('--accent-weak'), width:1, paths: uPlot.paths.stepped({align:1})}],
+      axes:[axisOpts(), Object.assign(axisOpts(),{size:70})] }, [x,y], $('#actChart'));
+  }
+}
+$('#chartBtn').onclick = drawCharts;
+$('#chartInst').onchange = ()=>{ $('#chartIid').value=''; drawCharts(); };
+$('#chartIid').addEventListener('keydown', e=>{ if(e.key==='Enter') drawCharts(); });
+window.addEventListener('resize', ()=>{ if(currentTab()==='chart'){ clearTimeout(window._rz); window._rz=setTimeout(drawCharts,200); } });
+
+// ---- file browser --------------------------------------------------------------
+async function browse(dir){
+  try{
+    const r = await api('ls', dir?{dir}:{});
+    $('#dirInput').value = r.dir; $('#upBtn').dataset.dir = r.parent;
+    $('#flist').innerHTML = r.entries.length ? r.entries.map(e=>`<div data-name="${esc(e.name)}" data-dir="${e.dir?1:''}"><span>${e.dir?'📁':'📄'}</span><span class="fn">${esc(e.name)}</span><span class="fs">${e.dir?'':fmtBytes(e.size)}</span><span class="fs">${e.mtime?new Date(e.mtime*1000).toISOString().slice(0,10):''}</span></div>`).join('') : '<div class="muted" style="display:block">（沒有子目錄或 .dbn/.zst 檔）</div>';
+  }catch(e){ $('#flist').innerHTML = `<div class="err" style="display:block">${esc(e.message)}</div>`; }
+}
+$('#browseBtn').onclick = ()=>{ $('#fileModal').classList.add('on'); const p=$('#pathInput').value.trim(); browse(p ? p.replace(/\/[^\/]*\.(dbn|zst)$/,'') : null); };
+$('#closeModal').onclick = ()=>$('#fileModal').classList.remove('on');
+$('#fileModal').addEventListener('click', e=>{ if(e.target.id==='fileModal') $('#fileModal').classList.remove('on'); });
+$('#upBtn').onclick = ()=>browse($('#upBtn').dataset.dir);
+$('#goBtn').onclick = ()=>browse($('#dirInput').value);
+$('#dirInput').addEventListener('keydown', e=>{ if(e.key==='Enter') browse($('#dirInput').value); });
+$('#flist').addEventListener('click', e=>{
+  const d=e.target.closest('div[data-name]'); if(!d) return;
+  const p = $('#dirInput').value.replace(/\/$/,'') + '/' + d.dataset.name;
+  if(d.dataset.dir) browse(p); else { $('#fileModal').classList.remove('on'); openFile(p); }
+});
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape') $('#fileModal').classList.remove('on');
+  if(e.key==='/' && document.activeElement.tagName!=='INPUT'){ e.preventDefault(); $('#symInput').focus(); }
+});
+$('#openBtn').onclick = ()=>openFile($('#pathInput').value);
+$('#pathInput').addEventListener('keydown', e=>{ if(e.key==='Enter') openFile($('#pathInput').value); });
+
+// ---- format guide (欄位說明 / byte layout) ------------------------------------------
+const FIELD_DOC = {
+  length:'紀錄長度，以 4 bytes 為單位（實際位元組 = length × 4）。解碼器靠它跳到下一筆紀錄。',
+  rtype:'紀錄類型 (record type)，決定後面欄位的 layout，例如 0xA0 = MBO、0xB1 = CMBP-1。',
+  publisher_id:'資料來源編號 = dataset + 交易所 (venue)，例如 30 = OPRA.PILLAR.OPRA、1 = GLBX.MDP3.GLBX。',
+  instrument_id:'交易所／Databento 指派的商品數字 ID。要對回 symbol 需查 metadata 的 symbology mappings（依日期而定）。',
+  ts_event:'交易所撮合引擎的事件時間，UNIX epoch 奈秒 (UTC)。cbbo/bbo 取樣 schema 中是「最近一筆成交」的時間，沒有成交時為未定義；ohlcv 中是 K 棒開始時間。',
+  ts_recv:'Databento 擷取伺服器收到訊息的時間，UNIX epoch 奈秒 (UTC)。是 Databento 的主索引時間，檔案依它排序。-1s / -1m 取樣 schema 中為對齊到秒／分鐘的取樣時間點。',
+  ts_in_delta:'交易所送出時間比 ts_recv 早多少奈秒（ts_recv − 交易所 sending time）。',
+  ts_out:'Databento 閘道送出時間（只有 live 資料且開啟 ts_out 時才會附加在每筆紀錄最後 8 bytes）。',
+  sequence:'交易所訊息序號 (venue sequence number)，可用來檢查缺包。',
+  price:'價格，定點數：實際值 = 整數 ÷ 1e9。INT64_MAX (9223372036854775807) 表示未定義。MBO = 委託價；trades/tbbo = 成交價；mbp = 該事件價格；cbbo/bbo = 最近一筆成交價。',
+  size:'數量（股數／合約數）。MBO = 該事件的委託量；取消 (C) 時是被取消的量。',
+  action:'事件類型：A 新增、C 取消、M 修改、R 清空訂單簿、T 成交、F 成交回報 (fill)、N 無。',
+  side:'B = 買方／bid、A = 賣方／ask、N = 無。成交 (T) 時表示主動方 (aggressor)：B = 主動買。',
+  flags:'位元旗標：128 LAST（同一事件的最後一筆）、64 TOB（top-of-book 訊息）、32 SNAPSHOT（來自快照）、16 MBP（由聚合價位合成）、8 BAD_TS_RECV、4 MAYBE_BAD_BOOK（可能有缺包）、2 PUBLISHER_SPECIFIC。',
+  depth:'此事件影響的簿深度層級（0 = 最優價）。',
+  order_id:'委託單 ID（交易所指派），同一張單的 A / M / C / F 共用此 ID。',
+  channel_id:'交易所 multicast 頻道 ID。',
+  open:'K 棒開盤價（定點 1e-9）。', high:'K 棒最高價。', low:'K 棒最低價。', close:'K 棒收盤價。', volume:'K 棒成交量。',
+  ts_ref:'統計值所指的參考時間（例如結算價對應的交易日）。',
+  quantity:'統計數量（例如未平倉量、成交量），INT 最大值表示未定義。',
+  stat_type:'統計類型：1 開盤價、3 結算價、4/5 盤中低/高、6 清算成交量、9 未平倉量、11 收盤價…（見「格式」分頁）。',
+  update_action:'1 = 新增、2 = 刪除（撤回先前公布的統計）。',
+  stat_flags:'交易所自訂的統計旗標。',
+  raw_symbol:'交易所原始代碼，例如 OPRA 的 "SPY   260116C00690000"（root 補空白到 6 字元 + YYMMDD + C/P + 履約價×1000 八位數）。',
+  expiration:'到期時間 (UNIX ns)。', activation:'上市／開始交易時間 (UNIX ns)。',
+  strike_price:'履約價（定點 1e-9）。', instrument_class:'商品類別：C 買權、P 賣權、F 期貨、K 股票、S 期貨價差…',
+  underlying:'標的代碼。', underlying_id:'標的的 instrument_id。', min_price_increment:'最小跳動價位 (tick size，定點 1e-9)。',
+  contract_multiplier:'合約乘數（例如美股期權 100）。', display_factor:'顯示價格的乘數（定點 1e-9）。',
+  unit_of_measure_qty:'合約單位數量（定點 1e-9）。', security_type:'證券類型，例如 OOF、FUT、OPT。', asset:'資產代碼。',
+  currency:'計價幣別。', exchange:'交易所 MIC。', high_limit_price:'漲停價。', low_limit_price:'跌停價。',
+  stype_in_symbol:'訂閱時使用的代碼（輸入 symbology）。', stype_out_symbol:'對應到的輸出代碼（通常是 raw symbol）。',
+  start_ts:'此 mapping 生效開始時間。', end_ts:'此 mapping 生效結束時間。',
+  msg:'系統訊息文字（heartbeat、訂閱確認…）。', err:'錯誤訊息文字。', code:'訊息代碼。', is_last:'是否為最後一則錯誤訊息。',
+  is_trading:'是否可交易：Y / N / ~（未知）。', is_quoting:'是否可報價：Y / N / ~。', is_short_sell_restricted:'是否限制放空：Y / N / ~。',
+  reason:'狀態變更原因代碼。', trading_event:'附加交易事件代碼。',
+  ref_price:'集合競價參考價。', paired_qty:'已配對數量。', total_imbalance_qty:'總失衡量。', auction_type:'競價類型。',
+  _rec:'（viewer 加的）此筆在檔案中的序號，從 0 起算。', symbol:'（viewer 加的）由 instrument_id 經 metadata mappings 查到的代碼。',
+};
+function fieldDoc(n){
+  if(FIELD_DOC[n]) return FIELD_DOC[n];
+  const m = n.match(/^(bid|ask)_(px|sz|ct|pb)_(\d\d)$/);
+  if(m){
+    const side = m[1]==='bid'?'買':'賣', lv = +m[3], lvs = lv===0 ? '最優（第 1 檔）' : `第 ${lv+1} 檔`;
+    return {px:`${lvs}${side}價（定點 1e-9；未定義 = INT64_MAX）。`, sz:`${lvs}${side}方總量。`, ct:`${lvs}${side}方的委託筆數。`,
+            pb:`${lvs}${side}價來自哪個交易所（publisher_id）。合併資料中用來看 NBBO 由誰提供。`}[m[2]];
+  }
+  if(/^_reserved|^_dummy|padding/.test(n)) return '保留／對齊用的填充位元組，沒有資料。';
+  return '';
+}
+const SCHEMA_DOC = {
+  'mbo':'逐筆委託 (Market by Order, L3)：每張委託單的新增／修改／取消／成交事件各一筆，可完整重建訂單簿。',
+  'mbp-1':'最優一檔 (L1)：每個改變最優買賣價或產生成交的事件一筆，附帶事件「之後」的最優買賣價量。',
+  'mbp-10':'前 10 檔 (L2)：每個簿變動事件一筆，附帶事件之後的 10 檔買賣價量與委託筆數。',
+  'tbbo':'成交 + 成交「之前」的最優買賣 (trades with BBO)：每筆成交一列。',
+  'trades':'逐筆成交：每筆成交一列。',
+  'ohlcv-1s':'每秒 K 棒；只有該區間有成交才有紀錄，ts_event 是區間開始時間。', 'ohlcv-1m':'每分鐘 K 棒；只有該區間有成交才有紀錄，ts_event 是區間開始時間。',
+  'ohlcv-1h':'每小時 K 棒。', 'ohlcv-1d':'日 K 棒（UTC 日界）。', 'ohlcv-eod':'以交易所收盤為界的日 K。',
+  'definition':'商品定義：到期日、履約價、乘數、tick size、標的…（OPRA 期權很適合用來解析合約規格）。',
+  'statistics':'交易所公布的統計：開／收盤價、結算價、未平倉量、成交量…，看 stat_type 分辨。',
+  'status':'交易狀態變化：暫停、恢復、開盤、收盤、放空限制等。', 'imbalance':'集合競價的買賣失衡資訊。',
+  'cmbp-1':'跨交易所合併的 L1 (consolidated MBP-1)：任一交易所報價變動就一筆，附帶合併後的 NBBO，以及提供最優價的交易所 (bid_pb / ask_pb)。資料量非常大。',
+  'cbbo-1s':'每秒取樣的合併 NBBO：只有該秒有報價更新的商品才有紀錄（需要 forward-fill）。price / size / ts_event 是最近一筆成交，可能是很久以前的。',
+  'cbbo-1m':'每分鐘取樣的合併 NBBO：只有該分鐘有報價更新的商品才有紀錄（需要 forward-fill）。price / size / ts_event 是最近一筆成交，可能是很久以前的，沒成交過就是未定義。',
+  'tcbbo':'成交 + 成交之前的合併 NBBO：每筆成交一列。',
+  'bbo-1s':'單一交易所的 L1 每秒取樣。', 'bbo-1m':'單一交易所的 L1 每分鐘取樣。',
+};
+const STYPE_DOC = {
+  instrument_id:'數字 instrument_id', raw_symbol:'交易所原始代碼（例如 ESH4、SPY   260116C00690000）',
+  parent:'母代碼：一個代碼展開成整串合約，例如 QQQ.OPT = QQQ 全部期權、ES.FUT = ES 全部期貨',
+  continuous:'連續合約，例如 ES.v.0 = 依成交量排名第一的 ES 期貨、ES.c.0 = 依日曆最近月',
+  nasdaq_symbol:'Nasdaq 代碼', cms_symbol:'CMS 代碼', isin:'ISIN', us_code:'CUSIP', figi:'FIGI',
+};
+const ENUMS = [
+  ['action', [['A','Add 新增委託／報價'],['C','Cancel 取消（部分或全部）'],['M','Modify 修改價或量'],['R','Clear 清空訂單簿（常見於快照開頭）'],['T','Trade 成交（主動方）'],['F','Fill 被動方成交回報'],['N','None 無動作（例如只更新 flags）']]],
+  ['side', [['B','Bid 買方'],['A','Ask 賣方'],['N','None（例如沒有方向的成交、取樣紀錄）']]],
+  ['flags（位元）', [['128','LAST：同一個交易所事件拆成多筆時，最後一筆才設；重建簿時應在 LAST 後才讀取狀態'],['64','TOB：top-of-book 訊息（該價位整層取代）'],['32','SNAPSHOT：來自快照／重播'],['16','MBP：由聚合價位資料合成'],['8','BAD_TS_RECV：ts_recv 不準'],['4','MAYBE_BAD_BOOK：可能有缺包，簿可能錯'],['2','PUBLISHER_SPECIFIC：交易所自訂']]],
+  ['stat_type', [['1','開盤價'],['2','指示性開盤價'],['3','結算價'],['4','盤中最低價'],['5','盤中最高價'],['6','清算成交量'],['7','最低賣價'],['8','最高買價'],['9','未平倉量 (open interest)'],['10','定盤價 (fixing)'],['11','收盤價'],['12','漲跌'],['13','VWAP'],['14','波動率'],['15','Delta']]],
+  ['未定義值 (sentinel)', [['INT64_MAX','價格未定義 9223372036854775807（viewer 顯示 —）'],['UINT64_MAX','時間戳未定義 18446744073709551615'],['UINT32_MAX','數量未定義 4294967295']]],
+];
+const RTYPE_DOC = [[0x00,'trade / mbp-0'],[0x01,'mbp-1 / tbbo'],[0x0A,'mbp-10'],[0x12,'status'],[0x13,'definition'],[0x14,'imbalance'],[0x15,'error'],[0x16,'symbol mapping'],[0x17,'system'],[0x18,'statistics'],[0x20,'ohlcv-1s'],[0x21,'ohlcv-1m'],[0x22,'ohlcv-1h'],[0x23,'ohlcv-1d'],[0x24,'ohlcv-eod'],[0xA0,'mbo'],[0xB1,'cmbp-1'],[0xC0,'cbbo-1s'],[0xC1,'cbbo-1m'],[0xC2,'tcbbo'],[0xC3,'bbo-1s'],[0xC4,'bbo-1m']];
+const FCOL = ['rgba(91,157,255,.28)','rgba(60,207,142,.28)','rgba(227,179,65,.30)','rgba(255,107,107,.26)','rgba(180,140,255,.30)','rgba(79,193,201,.30)'];
+const fieldColor = (n,i) => /^_reserved|^_dummy|padding/.test(n) ? 'rgba(128,128,128,.16)' : FCOL[i%FCOL.length];
+function byteStrip(layout, total){
+  // a proportional bar of the record bytes, one segment per field
+  return '<div class="bstrip">' + layout.map((f,i)=>`<div style="flex:${f[2]};background:${fieldColor(f[0],i)}" title="${esc(f[0])} · byte ${f[1]}–${f[1]+f[2]-1} · ${esc(f[3])}"><span>${f[2]>=4?esc(f[0]):''}</span></div>`).join('') + '</div>' +
+    `<div class="bscale"><span>0</span><span>${total} bytes</span></div>`;
+}
+function layoutTable(layout, withVals){
+  if(withVals){ // compact form for the drawer: docs move into the tooltip
+    return `<table class="ltable"><tr><th>offset</th><th>欄位</th><th>原始值</th></tr>` +
+      layout.map((f,i)=>`<tr data-f="${i}" title="${esc(f[3]+' · '+f[2]+' bytes\n'+fieldDoc(f[0]))}"><td class="mono">${f[1]}<span class="muted">+${f[2]}</span></td><td class="mono nw"><span class="sw" style="background:${fieldColor(f[0],i)}"></span>${esc(f[0])} <span class="muted">${esc(f[3])}</span></td><td class="mono" style="overflow-wrap:anywhere">${f[4]==null?'':esc(f[4])}</td></tr>`).join('') + '</table>';
+  }
+  return `<table class="ltable"><tr><th>offset</th><th>bytes</th><th>型別</th><th>欄位</th>${withVals?'<th>原始值</th>':''}<th>說明</th></tr>` +
+    layout.map((f,i)=>`<tr data-f="${i}"><td class="mono">${f[1]}</td><td class="mono">${f[2]}</td><td class="mono">${esc(f[3])}</td><td class="mono nw"><span class="sw" style="background:${fieldColor(f[0],i)}"></span>${esc(f[0])}</td>${withVals?`<td class="mono">${f[4]==null?'':esc(f[4])}</td>`:''}<td class="doc">${esc(fieldDoc(f[0]))}</td></tr>`).join('') + '</table>';
+}
+function hexView(hex, layout){
+  const owner = []; layout.forEach((f,i)=>{ for(let b=f[1]; b<f[1]+f[2]; b++) owner[b]=i; });
+  const n = hex.length/2; let h = '<div class="hex">';
+  for(let off=0; off<n; off+=16){
+    h += `<div class="hl"><span class="ho">${off.toString(16).padStart(4,'0')}</span>`;
+    for(let b=off; b<Math.min(n,off+16); b++){
+      const fi = owner[b]; const f = layout[fi];
+      h += `<span class="hb" data-f="${fi}" style="background:${f?fieldColor(f[0],fi):'transparent'}" title="${f?esc(f[0])+' @'+b:''}">${hex.substr(b*2,2)}</span>`;
+    }
+    h += '</div>';
+  }
+  return h + '</div>';
+}
+function linkHover(root){
+  const on = i => root.querySelectorAll(`[data-f="${i}"]`).forEach(x=>x.classList.add('hot'));
+  const off = () => root.querySelectorAll('.hot').forEach(x=>x.classList.remove('hot'));
+  root.addEventListener('mouseover', e=>{ const t=e.target.closest('[data-f]'); off(); if(t) on(t.dataset.f); });
+  root.addEventListener('mouseleave', off);
+}
+async function loadRaw(i, box){
+  box.innerHTML = '<div class="muted">讀取中…</div>';
+  try{
+    const r = await api('raw',{id:S.job,row:i});
+    box.innerHTML = `<div class="muted" style="font-size:12px;margin-bottom:6px">${esc(r.cls)} · rtype 0x${r.rtype.toString(16).padStart(2,'0')} · ${r.hex.length/2} bytes · little-endian。滑過位元組或欄位會互相對應。</div>` +
+      hexView(r.hex, r.layout) + layoutTable(r.layout, true);
+    linkHover(box);
+  }catch(e){ box.innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+}
+function renderFormat(){
+  const v = $('#formatView');
+  if(!S.meta){ v.innerHTML = '<div class="muted">先開啟一個檔案。</div>'; return; }
+  const m = S.meta.metadata, rec = S.meta.record, hl = S.meta.header_layout || [];
+  const hdrBytes = m.header_bytes, rsz = rec ? rec.size : 0;
+  const sd = SCHEMA_DOC[m.schema] || (m.schema ? '' : '混合 schema（檔案內有多種 rtype）。');
+  let h = `<div class="card"><h3>這個檔案是什麼</h3>
+    <p class="lead"><b class="mono">${esc(m.dataset)}</b> 的 <b class="mono">${esc(m.schema||'mixed')}</b> 資料。${esc(sd)}</p>
+    <p class="lead">symbology：<span class="mono">${esc(m.stype_in||'—')}</span> → <span class="mono">${esc(m.stype_out)}</span>。
+    ${m.stype_in?esc(STYPE_DOC[m.stype_in]||''):''}。檔內每筆紀錄只帶數字 <span class="mono">instrument_id</span>，要靠 header 裡的 mappings 對回代碼（本檔 ${fmtN(m.n_mappings)} 組）。</p>
+    <div class="flow">
+      <div class="fbox"><b>.zst 外層</b><span>Zstandard 壓縮整條串流，不能隨機存取，只能從頭解</span></div><div class="farr">→</div>
+      <div class="fbox"><b>Metadata header</b><span>${fmtN(hdrBytes)} bytes · DBN v${m.version}</span></div><div class="farr">→</div>
+      <div class="fbox"><b>Records</b><span>${rec?`${esc(rec.cls)} 每筆 ${rsz} bytes，一筆接一筆`:'—'}</span></div>
+    </div></div>`;
+  if(rec && rec.layout){
+    h += `<div class="card"><h3>Record layout：${esc(rec.cls)}（rtype 0x${rec.rtype.toString(16).padStart(2,'0')}, ${rsz} bytes）</h3>
+      ${byteStrip(rec.layout, rsz)}
+      <p class="lead muted">所有紀錄都以 16 bytes 的共同 header 開頭（length, rtype, publisher_id, instrument_id, ts_event），之後依 rtype 不同。整數都是 little-endian；價格是 int64 定點數（÷1e9）；時間是 UNIX 奈秒。點表格某一列可看該筆的實際位元組（明細面板 →「原始位元組」）。</p>
+      ${layoutTable(rec.layout, false)}</div>`;
+  }
+  h += `<div class="card"><h3>Metadata header（本檔實際值）</h3>
+    <p class="lead muted">解壓後的串流開頭：<span class="mono">"DBN"</span> + 版本 byte + 4-byte 長度，接著是下列欄位。v1 的 symbol 字串固定 22 bytes，v2/v3 為 71 bytes（由 symbol_cstr_len 指定）。</p>
+    <table class="ltable"><tr><th>offset</th><th>bytes</th><th>型別</th><th>欄位</th><th>值</th></tr>` +
+    hl.map(f=>`<tr><td class="mono">${f[1]}</td><td class="mono">${fmtN(f[2])}</td><td class="mono">${esc(f[3])}</td><td class="mono">${esc(f[0])}</td><td class="mono">${f[4]==null?'':esc(['start','end'].includes(f[0]) && /^\d+$/.test(f[4]) ? f[4]+'  ('+fmtTs(f[4],'dt')+' '+S.tz.split('/').pop()+')' : f[4])}</td></tr>`).join('') + '</table></div>';
+  h += '<div class="cols3">' + ENUMS.map(([t,rows])=>`<div class="card"><h3>${esc(t)}</h3><table class="ltable">${rows.map(r=>`<tr><td class="mono" style="white-space:nowrap">${esc(r[0])}</td><td class="doc">${esc(r[1])}</td></tr>`).join('')}</table></div>`).join('') +
+    `<div class="card"><h3>rtype</h3><table class="ltable">${RTYPE_DOC.map(r=>`<tr><td class="mono">0x${r[0].toString(16).padStart(2,'0')}</td><td class="mono">${r[0]}</td><td class="doc">${esc(r[1])}</td></tr>`).join('')}</table></div></div>`;
+  h += `<div class="card"><h3>常見陷阱</h3><ul class="tips">
+    <li>價格一律是整數 ÷ 1e9；<span class="mono">9223372036854775807</span> 代表「沒有值」，不能直接當價格算。</li>
+    <li>時間都是 UTC 奈秒；美股盤中 09:30–16:00 ET = 14:30–21:00 UTC（夏令 13:30–20:00）。右上角可切時區。</li>
+    <li><span class="mono">ts_recv</span> 是檔案排序用的時間；<span class="mono">ts_event</span> 是交易所時間，可能亂序或未定義。</li>
+    <li>MBO 的 <span class="mono">T</span>／<span class="mono">F</span> 不改變訂單簿，真正減量的是後續的 <span class="mono">C</span>／<span class="mono">M</span>；重建簿要等 flags 含 LAST 才算一個完整事件。</li>
+    <li>OPRA 的 instrument_id 每天可能不同，跨日要用 symbol 對齊，不要用 id。</li>
+    <li>-1s / -1m 取樣 schema 只在有更新時出現，要自己 forward-fill；price/size 是「最近一次成交」，不是該區間的成交。</li>
+    <li>DBN v1 → v2 → v3：symbol 長度 22 → 71；InstrumentDef 360 → 400 → 520 bytes；StatMsg 的 quantity 在 v3 由 i32 改成 i64（64 → 80 bytes）。這個 viewer 依檔頭版本自動切換。</li>
+  </ul></div>`;
+  v.innerHTML = h;
+}
+
+// ---- boot ------------------------------------------------------------------------
+(async ()=>{
+  try{
+    const init = await api('init'); S.init=init; S.pubs=init.publishers||{};
+    if(init.open) openFile(init.open);
+    else { let last=null; try{ last=localStorage.getItem('dbnview.last'); }catch(e){} if(last) $('#pathInput').value=last; $('#pathInput').placeholder = init.roots[0]+'/…'; }
+  }catch(e){ showErr(e); }
+})();
+</script>
+</body>
+</html>
