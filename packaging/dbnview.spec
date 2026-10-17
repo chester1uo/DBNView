@@ -7,6 +7,9 @@ import sys
 
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
+_init = open(os.path.join(SPECPATH, "..", "src", "dbnview", "__init__.py"), encoding="utf-8").read()
+VERSION = _init.split('__version__ = "', 1)[1].split('"', 1)[0]
+
 ROOT = os.path.abspath(os.path.join(SPECPATH, ".."))
 ICON = {"darwin": "dbnview.icns", "win32": "dbnview.ico"}.get(sys.platform, "icon.png")
 
@@ -31,7 +34,9 @@ if sys.platform == "darwin":
         name="DBNView.app",
         icon=os.path.join(SPECPATH, "dbnview.icns"),
         bundle_identifier="io.github.chester1uo.dbnview",
+        version=VERSION,
         info_plist={
+            "CFBundleVersion": VERSION,
             "CFBundleName": "DBNView",
             "CFBundleDisplayName": "DBNView",
             "NSHighResolutionCapable": True,
