@@ -74,9 +74,18 @@ python -m venv .venv
 桌面应用和终端界面可以读取另一台机器上的文件，那台机器上不需要安装任何东西。
 
 - **桌面**：使用 **文件 → 打开远程文件（ssh）…**（⇧⌘O / Ctrl+Shift+O）。
-  1. 选择主机。列表来自 `~/.ssh/config` 中的 `Host` 条目，通配符条目会被忽略。
-  2. 输入或浏览到目录。双击文件夹进入，双击文件打开。
-- **命令行**：使用 `ssh://HOST/ABSOLUTE/PATH` 形式的 URL：
+  1. 选择 SSH 配置。列表包括 DBNView 配置和 `~/.ssh/config` 中的 `Host` 条目，通配符条目会被忽略。
+  2. 点 **+** 新增配置，或选中 `~/.ssh/config` 的主机后点 **编辑** 导入（地址、用户、端口、代理由 `ssh -G` 读出）。
+     一个配置包括：
+     - **登录**：名称、地址、端口、用户名。
+     - **认证**：密钥（指定私钥文件，留空则用 OpenSSH 默认密钥和 `ssh-agent`）或密码。
+     - **代理**：不使用；跳板机（`ProxyJump`：`~/.ssh/config` 别名或 `user@host:port`，多跳用逗号串联，例如
+       `tokyo-ec2,hluo@localhost:2222`）；SOCKS5 或 HTTP CONNECT 代理（`host:port`，通过 `nc` 连接）；或自定义 `ProxyCommand`。
+     - **日志与安全**：OpenSSH 日志文件及等级（`ERROR` … `DEBUG3`），以及首次连接是否自动信任主机密钥
+       （`StrictHostKeyChecking=accept-new`，密钥变更时仍会拒绝）。
+     - **测试连接** 会连一次，显示远程 `uname` 或 ssh 的错误信息。
+  3. 输入或浏览到目录。双击文件夹进入，双击文件打开。
+- **命令行**：使用 `ssh://HOST/ABSOLUTE/PATH` 形式的 URL，HOST 可以是 `~/.ssh/config` 别名或 DBNView 配置名称：
 
   ```bash
   dbnview ssh://myserver/data/databento/opra-20260102.cbbo-1m.dbn.zst
@@ -90,6 +99,10 @@ python -m venv .venv
 
 - 数据通过 `ssh HOST cat PATH` 以流的方式传输，在本机解码。
 - ssh 以 `BatchMode=yes` 和 `ConnectTimeout=10` 运行，所以它使用你现有的密钥和 agent，从不询问密码。
+- DBNView 自建配置保存在 `~/.config/dbnview/ssh_profiles.json`（Windows 使用 `%APPDATA%\dbnview`）。密码只在
+  当前进程的内存中保存，退出后需要重新输入，不会写入配置文件或 SSH 日志。
+- 密钥认证可指定私钥文件，留空时使用 OpenSSH 默认密钥和 `ssh-agent`。密码认证通过 OpenSSH 的
+  `SSH_ASKPASS` 运行。SOCKS5 / HTTP 代理需要支持 `-X` 的 `nc`（macOS 自带；Linux 用 OpenBSD netcat；Windows 需另行安装）。
 - 在 macOS 和 Linux 上，连接会复用 120 秒（`ControlMaster=auto`，控制套接字位于 `~/.ssh/dbnview-*`），
   所以先浏览目录再打开文件只用一个连接。
 - 列目录和获取文件大小用的是 GNU `find -printf` 和 `stat -c`，所以远程机器应该是 Linux 主机。

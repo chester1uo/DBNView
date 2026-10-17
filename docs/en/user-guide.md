@@ -77,9 +77,21 @@ right away.
 The desktop app and the terminal UI can read files on another machine without installing anything there.
 
 - **Desktop**: use **File → Open Remote File (ssh)…** (⇧⌘O / Ctrl+Shift+O).
-  1. Pick a host. The list comes from the `Host` entries in `~/.ssh/config`; wildcard patterns are skipped.
-  2. Type or browse to a directory. Double-click a folder to enter it, or a file to open it.
-- **Command line**: use a URL of the form `ssh://HOST/ABSOLUTE/PATH`:
+  1. Pick an SSH profile. The list includes DBNView profiles and `Host` entries from `~/.ssh/config`; wildcard
+     patterns are skipped.
+  2. Click **+** to add a profile, or **Edit** a selected `~/.ssh/config` host to import it (address, user, port and
+     proxy are read with `ssh -G`). A profile has:
+     - **Login**: name, address, port, username.
+     - **Authentication**: a key (a private-key file, or blank for the OpenSSH defaults and `ssh-agent`) or a password.
+     - **Proxy**: none; a jump host (`ProxyJump`: a `~/.ssh/config` alias or `user@host:port`, several hops joined by
+       commas, e.g. `tokyo-ec2,hluo@localhost:2222`); a SOCKS5 or HTTP CONNECT proxy (`host:port`, run through `nc`);
+       or a custom `ProxyCommand`.
+     - **Logging and security**: an OpenSSH log file with a level (`ERROR` … `DEBUG3`), and whether to trust a new
+       host key on first connection (`StrictHostKeyChecking=accept-new`; a changed key is still rejected).
+     - **Test Connection** connects once and shows the remote `uname` or the ssh error.
+  3. Type or browse to a directory. Double-click a folder to enter it, or a file to open it.
+- **Command line**: use a URL of the form `ssh://HOST/ABSOLUTE/PATH`, where HOST is a `~/.ssh/config` alias or the
+  name of a DBNView profile:
 
   ```bash
   dbnview ssh://myserver/data/databento/opra-20260102.cbbo-1m.dbn.zst
@@ -94,6 +106,11 @@ How it works:
 - Data is streamed with `ssh HOST cat PATH` and decoded locally.
 - ssh runs with `BatchMode=yes` and `ConnectTimeout=10`, so it uses your existing keys and agent and never prompts
   for a password.
+- DBNView profiles are stored in `~/.config/dbnview/ssh_profiles.json` (`%APPDATA%\dbnview` on Windows). Passwords
+  stay in process memory only, must be entered again after restarting, and are never written to the profile or SSH log.
+- Key authentication can name a private-key file; when blank, OpenSSH defaults and `ssh-agent` are used. Password
+  authentication uses OpenSSH `SSH_ASKPASS`. SOCKS5 / HTTP proxies need `nc` with `-X` (built into macOS; the
+  OpenBSD netcat on Linux; install one separately on Windows).
 - On macOS and Linux, connections are shared for 120 seconds (`ControlMaster=auto`, control sockets at
   `~/.ssh/dbnview-*`), so browsing and then opening a file reuses one connection.
 - Directory listing and file size use GNU `find -printf` and `stat -c`, so the remote machine should be a Linux host.

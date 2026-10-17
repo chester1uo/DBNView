@@ -1,15 +1,12 @@
 """Byte sources: local files or `ssh host cat path` streams, zstd detection, directory listing."""
 import os
 
+from .ssh_profiles import ssh_invocation
+
 try:
     import zstandard
 except ImportError:  # pragma: no cover
     zstandard = None
-
-
-SSH_OPTS = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=10"]
-if os.name != "nt":  # connection sharing is not available in Windows OpenSSH
-    SSH_OPTS += ["-o", "ControlMaster=auto", "-o", "ControlPath=~/.ssh/dbnview-%r@%h:%p", "-o", "ControlPersist=120"]
 
 
 def is_remote(path):
@@ -25,7 +22,8 @@ def split_remote(path):
 
 def ssh_run(host, cmd, timeout=30):
     import subprocess
-    r = subprocess.run(["ssh"] + SSH_OPTS + [host, cmd], capture_output=True, timeout=timeout)
+    argv, env = ssh_invocation(host, cmd)
+    r = subprocess.run(argv, capture_output=True, timeout=timeout, env=env, stdin=subprocess.DEVNULL)
     if r.returncode != 0:
         raise OSError("ssh %s: %s" % (host, r.stderr.decode(errors="replace").strip() or r.returncode))
     return r.stdout.decode("utf-8", "replace")
@@ -88,8 +86,9 @@ class _CountingReader:
             import shlex
             import subprocess
             host, p = split_remote(path)
-            self.proc = subprocess.Popen(["ssh"] + SSH_OPTS + [host, "cat " + shlex.quote(p)],
-                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
+            argv, env = ssh_invocation(host, "cat " + shlex.quote(p))
+            self.proc = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0,
+                                         env=env, stdin=subprocess.DEVNULL)
             self.f = self.proc.stdout
         else:
             self.f = open(path, "rb")
@@ -149,4 +148,3 @@ def open_stream(path):
             rd = zstandard.ZstdDecompressor().stream_reader(fh, read_size=1 << 20)
         return fh, rd
     return fh, fh
-
