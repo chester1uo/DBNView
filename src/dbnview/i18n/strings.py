@@ -3412,4 +3412,11 @@ STRINGS = {'開啟遠端檔案（ssh）': {'zh_Hant': '開啟遠端檔案（ssh�
                'ja': 'オプションファイル読み込み中… %s',
                'de': 'Lese Optionsdatei… %s',
                'ko': '옵션 파일 읽는 중… %s',
-               'es': 'Leyendo archivo de opciones… %s'}}
+               'es': 'Leyendo archivo de opciones… %s'},
+ '成交量來源：%s': {'zh_Hant': '成交量來源：%s',
+              'zh_Hans': '成交量来源：%s',
+              'en': 'Volume: %s',
+              'ja': '出来高の出所：%s',
+              'de': 'Volumen: %s',
+              'ko': '거래량 출처: %s',
+              'es': 'Volumen: %s'}}

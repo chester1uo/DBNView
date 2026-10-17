@@ -105,12 +105,13 @@ def _gamma(F, K, T, sigma):
 
 
 def walls(root, surface=None, oi=None, vol=None, spot=None, max_days=None, expiries=None, multiplier=100,
-          asof=None, profile_range=0.12, profile_points=121):
+          asof=None, wall_range=0.15, profile_range=0.12, profile_points=121):
     """Per-strike walls and gamma exposure.
 
     surface: options.surface(...) result (optional; needed for gamma and for an automatic spot)
     oi / vol: dicts keyed by (root, expiry, cp, strike)
     max_days / expiries: restrict to expiries within max_days (counted from `asof`, a date) or to a set of dates
+    wall_range: call/put walls are searched within +-wall_range of spot (far OTM hedges are ignored)
     """
     import datetime as dt
     oi, vol = oi or {}, vol or {}
@@ -158,8 +159,9 @@ def walls(root, surface=None, oi=None, vol=None, spot=None, max_days=None, expir
     out = {"root": root, "strike": strikes, "call_oi": a[:, 0], "put_oi": a[:, 1], "call_vol": a[:, 2],
            "put_vol": a[:, 3], "call_gex": a[:, 4], "put_gex": a[:, 5], "net_gex": a[:, 4] + a[:, 5], "spot": spot,
            "has_oi": bool(a[:, :2].any()), "has_vol": bool(a[:, 2:4].any()), "has_gex": bool(contracts)}
-    above = strikes >= (spot or -np.inf)
-    below = strikes <= (spot or np.inf)
+    near = np.abs(strikes - spot) <= spot * wall_range if spot else np.ones(len(strikes), bool)
+    above = near & (strikes >= (spot or -np.inf))
+    below = near & (strikes <= (spot or np.inf))
     out["call_wall"] = float(strikes[above][np.argmax(a[above, 0])]) if out["has_oi"] and above.any() else None
     out["put_wall"] = float(strikes[below][np.argmax(a[below, 1])]) if out["has_oi"] and below.any() else None
     out["vol_call_wall"] = float(strikes[above][np.argmax(a[above, 2])]) if out["has_vol"] and above.any() else None

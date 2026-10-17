@@ -134,6 +134,12 @@ class JointWindow(QtWidgets.QMainWindow):
                 res["opt"] = joint.option_series(opt, rt, interval, r=r, cancel=cancel,
                                                  progress=lambda n: prog.__setitem__("opt", n))
                 rt = res["opt"]["root"]
+                o = res["opt"]
+                if not o["call_vol"].any() and not o["put_vol"].any():
+                    vf = joint.find_volume_file(opt)
+                    if vf:
+                        joint.merge_flow(o, joint.option_series(vf, rt, interval, r=r, cancel=cancel))
+                        res["vol_file"] = vf
                 oi_file = oi_path or walls.find_statistics_file(opt)
                 if oi_file:
                     res["oi_file"] = oi_file
@@ -161,9 +167,11 @@ class JointWindow(QtWidgets.QMainWindow):
         self.glw.setBackground(t["bg"])
         stock, opt = res.get("stock"), res.get("opt")
         rows = [("price", T("價格"))]
+        has_flow = opt is not None and (opt["call_vol"].any() or opt["put_vol"].any())
         if opt is not None:
-            rows += [("iv", T("隱含波動率 vs 實現波動率")), ("skew", T("偏斜（Put − Call IV）")), ("flow", T("期權成交量（Put 向下）")),
-                     ("pc", T("Put/Call 比"))]
+            rows += [("iv", T("隱含波動率 vs 實現波動率")), ("skew", T("偏斜（Put − Call IV）"))]
+            if has_flow:
+                rows += [("flow", T("期權成交量（Put 向下）")), ("pc", T("Put/Call 比"))]
         elif stock is not None:
             rows += [("iv", T("實現波動率"))]
         self.plots = {}
@@ -214,16 +222,19 @@ class JointWindow(QtWidgets.QMainWindow):
             ivp.plot(ox, 100 * opt["front_iv"], pen=pg.mkPen(t["accent"], width=1.4), name=T("前月 ATM IV"), connect="finite")
             ivp.plot(ox, 100 * opt["iv30"], pen=pg.mkPen("#b48cff", width=1.4), name=T("約 30 天 ATM IV"), connect="finite")
             self.plots["skew"].plot(ox, 100 * opt["skew"], pen=pg.mkPen("#4fc1c9", width=1.4), connect="finite")
-            w = res["interval"] * 0.8
-            fp = self.plots["flow"]
-            fp.addItem(pg.BarGraphItem(x=ox - res["interval"] / 2, height=opt["call_vol"], width=w, brush=t["bid"], pen=None))
-            fp.addItem(pg.BarGraphItem(x=ox - res["interval"] / 2, height=-opt["put_vol"], width=w, brush=t["ask"], pen=None))
-            pc = self.plots["pc"]
-            pc.plot(ox, opt["pc_ratio"], pen=pg.mkPen(t["warn"], width=1.3), connect="finite")
-            pc.addItem(pg.InfiniteLine(pos=1, angle=0, pen=pg.mkPen(t["muted"], style=Qt.DotLine)))
+            if has_flow:
+                w = res["interval"] * 0.8
+                fp = self.plots["flow"]
+                fp.addItem(pg.BarGraphItem(x=ox - res["interval"] / 2, height=opt["call_vol"], width=w, brush=t["bid"], pen=None))
+                fp.addItem(pg.BarGraphItem(x=ox - res["interval"] / 2, height=-opt["put_vol"], width=w, brush=t["ask"], pen=None))
+                pc = self.plots["pc"]
+                pc.plot(ox, opt["pc_ratio"], pen=pg.mkPen(t["warn"], width=1.3), connect="finite")
+                pc.addItem(pg.InfiniteLine(pos=1, angle=0, pen=pg.mkPen(t["muted"], style=Qt.DotLine)))
             notes.append("%s %s · %d %s" % (T("期權"), opt["root"], len(ox), T("個時間點")))
-            if not opt["call_vol"].any() and not opt["put_vol"].any():
+            if not has_flow:
                 notes.append(T("期權檔沒有成交紀錄（成交量需要 trades / tcbbo / cmbp-1）"))
+            elif res.get("vol_file"):
+                notes.append(T("成交量來源：%s") % display_name(res["vol_file"]))
             # walls at the last grid time, from open interest if available
             if res.get("oi"):
                 self._draw_walls(pp, res, t)

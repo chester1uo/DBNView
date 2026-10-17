@@ -177,7 +177,12 @@ def option_series(path, root, interval, r=0.04, target_days=30, t0=None, t1=None
                         b[part["bid_px_00"] == UNDEF_PRICE] = np.nan
                         a[part["ask_px_00"] == UNDEF_PRICE] = np.nan
                         bid[ps], ask[ps] = b / PRICE_SCALE, a / PRICE_SCALE  # later rows overwrite earlier ones
-                    if rt.cls in ("TradeMsg", "TCBBOMsg") or ("action" in names and rt.cls == "CMBP1Msg"):
+                    if rt.cls == "OHLCVMsg":
+                        v = part["volume"].astype(np.float64)
+                        prem = part["close"] / PRICE_SCALE * v * 100
+                        isc = ch.call[ps]
+                        flow += [v[isc].sum(), v[~isc].sum(), prem[isc].sum(), prem[~isc].sum()]
+                    elif rt.cls in ("TradeMsg", "TCBBOMsg") or ("action" in names and rt.cls == "CMBP1Msg"):
                         tm = np.ones(len(part), bool) if rt.cls in ("TradeMsg", "TCBBOMsg") else part["action"] == b"T"
                         tm &= part["price"] != UNDEF_PRICE
                         if tm.any():
@@ -204,6 +209,37 @@ def option_series(path, root, interval, r=0.04, target_days=30, t0=None, t1=None
     res["root"] = root
     res["interval"] = interval
     return res
+
+
+def find_volume_file(options_path):
+    """A sibling option file with trades (trades / tcbbo / ohlcv) for the same day, or None."""
+    import os
+    import re
+    if options_path.startswith("ssh://"):
+        return None
+    d, name = os.path.split(options_path)
+    date = re.search(r"(20\d\d-?\d\d-?\d\d)", name)
+    prefix = name.split("_")[0]
+    best = None
+    for f in sorted(os.listdir(d or ".")):
+        if f == name or not f.endswith((".dbn", ".zst")) or not any(k in f for k in ("trades", "tcbbo", "ohlcv")):
+            continue
+        if date and date.group(1) not in f:
+            continue
+        score = (prefix in f) * 2 + ("tcbbo" in f) + ("trades" in f)
+        if best is None or score > best[0]:
+            best = (score, f)
+    return os.path.join(d, best[1]) if best and best[0] >= 2 else None
+
+
+def merge_flow(base, extra):
+    """Copy per-interval call/put volume and premium from `extra` into `base` where the grid times match."""
+    idx = {round(t): i for i, t in enumerate(extra["t"])}
+    for k in ("call_vol", "put_vol", "call_prem", "put_prem"):
+        base[k] = np.array([extra[k][idx[round(t)]] if round(t) in idx else 0.0 for t in base["t"]])
+    with np.errstate(divide="ignore", invalid="ignore"):
+        base["pc_ratio"] = np.where(base["call_vol"] > 0, base["put_vol"] / base["call_vol"], np.nan)
+    return base
 
 
 def symbol_root(symbol):
