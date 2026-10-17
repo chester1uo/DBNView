@@ -48,6 +48,7 @@ where = ["src"]
 [tool.setuptools.package-data]
 "dbnview.engine" = ["spec.json"]
 "dbnview.web" = ["static/*.html"]
+"dbnview.gui" = ["assets/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

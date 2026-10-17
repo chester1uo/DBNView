@@ -3419,4 +3419,303 @@ STRINGS = {'開啟遠端檔案（ssh）': {'zh_Hant': '開啟遠端檔案（ssh�
               'ja': '出来高の出所：%s',
               'de': 'Volumen: %s',
               'ko': '거래량 출처: %s',
-              'es': 'Volumen: %s'}}
+              'es': 'Volumen: %s'},
+ 'Databento DBN 行情資料檢視器': {'zh_Hant': 'Databento DBN 行情資料檢視器',
+                           'zh_Hans': 'Databento DBN 行情数据查看器',
+                           'en': 'Market-data viewer for Databento DBN files',
+                           'ja': 'Databento DBN マーケットデータ・ビューア',
+                           'de': 'Marktdaten-Viewer für Databento-DBN-Dateien',
+                           'ko': 'Databento DBN 시장 데이터 뷰어',
+                           'es': 'Visor de datos de mercado Databento DBN'},
+ '版本 %s': {'zh_Hant': '版本 %s',
+           'zh_Hans': '版本 %s',
+           'en': 'Version %s',
+           'ja': 'バージョン %s',
+           'de': 'Version %s',
+           'ko': '버전 %s',
+           'es': 'Versión %s'},
+ '免責聲明：': {'zh_Hant': '免責聲明：',
+           'zh_Hans': '免责声明：',
+           'en': 'Disclaimer: ',
+           'ja': '免責事項：',
+           'de': 'Haftungsausschluss: ',
+           'ko': '면책 조항: ',
+           'es': 'Aviso legal: '},
+ '本軟體僅供研究與教育用途，不構成任何投資建議或交易依據。行情資料與計算結果（例如隱含波動率、Gamma 曝險）可能不準確或有延遲，使用者須自行判斷並承擔風險。DBNView 為獨立專案，與 Databento, Inc. 無任何關聯；Databento 為其所有者的商標。': {'zh_Hant': '本軟體僅供研究與教育用途，不構成任何投資建議或交易依據。行情資料與計算結果（例如隱含波動率、Gamma '
+                                                                                                                                                         '曝險）可能不準確或有延遲，使用者須自行判斷並承擔風險。DBNView '
+                                                                                                                                                         '為獨立專案，與 '
+                                                                                                                                                         'Databento, '
+                                                                                                                                                         'Inc. '
+                                                                                                                                                         '無任何關聯；Databento '
+                                                                                                                                                         '為其所有者的商標。',
+                                                                                                                                              'zh_Hans': '本软件仅供研究与教育用途，不构成任何投资建议或交易依据。行情数据与计算结果（例如隐含波动率、Gamma '
+                                                                                                                                                         '敞口）可能不准确或有延迟，用户须自行判断并承担风险。DBNView '
+                                                                                                                                                         '为独立项目，与 '
+                                                                                                                                                         'Databento, '
+                                                                                                                                                         'Inc. '
+                                                                                                                                                         '无任何关联；Databento '
+                                                                                                                                                         '为其所有者的商标。',
+                                                                                                                                              'en': 'This '
+                                                                                                                                                    'software '
+                                                                                                                                                    'is '
+                                                                                                                                                    'for '
+                                                                                                                                                    'research '
+                                                                                                                                                    'and '
+                                                                                                                                                    'educational '
+                                                                                                                                                    'use '
+                                                                                                                                                    'only '
+                                                                                                                                                    'and '
+                                                                                                                                                    'is '
+                                                                                                                                                    'not '
+                                                                                                                                                    'investment '
+                                                                                                                                                    'advice '
+                                                                                                                                                    'or '
+                                                                                                                                                    'a '
+                                                                                                                                                    'basis '
+                                                                                                                                                    'for '
+                                                                                                                                                    'trading. '
+                                                                                                                                                    'Market '
+                                                                                                                                                    'data '
+                                                                                                                                                    'and '
+                                                                                                                                                    'computed '
+                                                                                                                                                    'results '
+                                                                                                                                                    '(such '
+                                                                                                                                                    'as '
+                                                                                                                                                    'implied '
+                                                                                                                                                    'volatility '
+                                                                                                                                                    'and '
+                                                                                                                                                    'gamma '
+                                                                                                                                                    'exposure) '
+                                                                                                                                                    'may '
+                                                                                                                                                    'be '
+                                                                                                                                                    'inaccurate '
+                                                                                                                                                    'or '
+                                                                                                                                                    'delayed; '
+                                                                                                                                                    'you '
+                                                                                                                                                    'use '
+                                                                                                                                                    'them '
+                                                                                                                                                    'at '
+                                                                                                                                                    'your '
+                                                                                                                                                    'own '
+                                                                                                                                                    'judgment '
+                                                                                                                                                    'and '
+                                                                                                                                                    'risk. '
+                                                                                                                                                    'DBNView '
+                                                                                                                                                    'is '
+                                                                                                                                                    'an '
+                                                                                                                                                    'independent '
+                                                                                                                                                    'project '
+                                                                                                                                                    'with '
+                                                                                                                                                    'no '
+                                                                                                                                                    'affiliation '
+                                                                                                                                                    'to '
+                                                                                                                                                    'Databento, '
+                                                                                                                                                    'Inc.; '
+                                                                                                                                                    'Databento '
+                                                                                                                                                    'is '
+                                                                                                                                                    'a '
+                                                                                                                                                    'trademark '
+                                                                                                                                                    'of '
+                                                                                                                                                    'its '
+                                                                                                                                                    'owner.',
+                                                                                                                                              'ja': '本ソフトウェアは研究・教育目的に限って提供され、投資助言や売買判断の根拠となるものではありません。マーケットデータおよび計算結果（インプライド・ボラティリティ、ガンマ・エクスポージャー等）は不正確または遅延している可能性があり、ご利用はご自身の判断と責任で行ってください。DBNView '
+                                                                                                                                                    'は独立したプロジェクトであり、Databento, '
+                                                                                                                                                    'Inc. '
+                                                                                                                                                    'とは一切関係ありません。Databento '
+                                                                                                                                                    'はその所有者の商標です。',
+                                                                                                                                              'de': 'Diese '
+                                                                                                                                                    'Software '
+                                                                                                                                                    'dient '
+                                                                                                                                                    'ausschließlich '
+                                                                                                                                                    'Forschungs- '
+                                                                                                                                                    'und '
+                                                                                                                                                    'Lehrzwecken '
+                                                                                                                                                    'und '
+                                                                                                                                                    'stellt '
+                                                                                                                                                    'keine '
+                                                                                                                                                    'Anlageberatung '
+                                                                                                                                                    'oder '
+                                                                                                                                                    'Handelsgrundlage '
+                                                                                                                                                    'dar. '
+                                                                                                                                                    'Marktdaten '
+                                                                                                                                                    'und '
+                                                                                                                                                    'berechnete '
+                                                                                                                                                    'Ergebnisse '
+                                                                                                                                                    '(etwa '
+                                                                                                                                                    'implizite '
+                                                                                                                                                    'Volatilität '
+                                                                                                                                                    'und '
+                                                                                                                                                    'Gamma-Exposure) '
+                                                                                                                                                    'können '
+                                                                                                                                                    'ungenau '
+                                                                                                                                                    'oder '
+                                                                                                                                                    'verzögert '
+                                                                                                                                                    'sein; '
+                                                                                                                                                    'die '
+                                                                                                                                                    'Nutzung '
+                                                                                                                                                    'erfolgt '
+                                                                                                                                                    'nach '
+                                                                                                                                                    'eigenem '
+                                                                                                                                                    'Ermessen '
+                                                                                                                                                    'und '
+                                                                                                                                                    'auf '
+                                                                                                                                                    'eigenes '
+                                                                                                                                                    'Risiko. '
+                                                                                                                                                    'DBNView '
+                                                                                                                                                    'ist '
+                                                                                                                                                    'ein '
+                                                                                                                                                    'unabhängiges '
+                                                                                                                                                    'Projekt '
+                                                                                                                                                    'ohne '
+                                                                                                                                                    'Verbindung '
+                                                                                                                                                    'zu '
+                                                                                                                                                    'Databento, '
+                                                                                                                                                    'Inc.; '
+                                                                                                                                                    'Databento '
+                                                                                                                                                    'ist '
+                                                                                                                                                    'eine '
+                                                                                                                                                    'Marke '
+                                                                                                                                                    'ihres '
+                                                                                                                                                    'Inhabers.',
+                                                                                                                                              'ko': '이 '
+                                                                                                                                                    '소프트웨어는 '
+                                                                                                                                                    '연구 '
+                                                                                                                                                    '및 '
+                                                                                                                                                    '교육 '
+                                                                                                                                                    '목적으로만 '
+                                                                                                                                                    '제공되며 '
+                                                                                                                                                    '투자 '
+                                                                                                                                                    '조언이나 '
+                                                                                                                                                    '매매의 '
+                                                                                                                                                    '근거가 '
+                                                                                                                                                    '아닙니다. '
+                                                                                                                                                    '시장 '
+                                                                                                                                                    '데이터와 '
+                                                                                                                                                    '계산 '
+                                                                                                                                                    '결과(내재변동성, '
+                                                                                                                                                    '감마 '
+                                                                                                                                                    '익스포저 '
+                                                                                                                                                    '등)는 '
+                                                                                                                                                    '부정확하거나 '
+                                                                                                                                                    '지연될 '
+                                                                                                                                                    '수 '
+                                                                                                                                                    '있으며, '
+                                                                                                                                                    '이용에 '
+                                                                                                                                                    '따른 '
+                                                                                                                                                    '판단과 '
+                                                                                                                                                    '위험은 '
+                                                                                                                                                    '사용자에게 '
+                                                                                                                                                    '있습니다. '
+                                                                                                                                                    'DBNView는 '
+                                                                                                                                                    '독립 '
+                                                                                                                                                    '프로젝트로 '
+                                                                                                                                                    'Databento, '
+                                                                                                                                                    'Inc.와 '
+                                                                                                                                                    '아무런 '
+                                                                                                                                                    '관련이 '
+                                                                                                                                                    '없으며, '
+                                                                                                                                                    'Databento는 '
+                                                                                                                                                    '해당 '
+                                                                                                                                                    '소유자의 '
+                                                                                                                                                    '상표입니다.',
+                                                                                                                                              'es': 'Este '
+                                                                                                                                                    'software '
+                                                                                                                                                    'es '
+                                                                                                                                                    'solo '
+                                                                                                                                                    'para '
+                                                                                                                                                    'investigación '
+                                                                                                                                                    'y '
+                                                                                                                                                    'educación '
+                                                                                                                                                    'y '
+                                                                                                                                                    'no '
+                                                                                                                                                    'constituye '
+                                                                                                                                                    'asesoramiento '
+                                                                                                                                                    'de '
+                                                                                                                                                    'inversión '
+                                                                                                                                                    'ni '
+                                                                                                                                                    'base '
+                                                                                                                                                    'para '
+                                                                                                                                                    'operar. '
+                                                                                                                                                    'Los '
+                                                                                                                                                    'datos '
+                                                                                                                                                    'de '
+                                                                                                                                                    'mercado '
+                                                                                                                                                    'y '
+                                                                                                                                                    'los '
+                                                                                                                                                    'resultados '
+                                                                                                                                                    'calculados '
+                                                                                                                                                    '(como '
+                                                                                                                                                    'la '
+                                                                                                                                                    'volatilidad '
+                                                                                                                                                    'implícita '
+                                                                                                                                                    'y '
+                                                                                                                                                    'la '
+                                                                                                                                                    'exposición '
+                                                                                                                                                    'gamma) '
+                                                                                                                                                    'pueden '
+                                                                                                                                                    'ser '
+                                                                                                                                                    'inexactos '
+                                                                                                                                                    'o '
+                                                                                                                                                    'tener '
+                                                                                                                                                    'retraso; '
+                                                                                                                                                    'su '
+                                                                                                                                                    'uso '
+                                                                                                                                                    'queda '
+                                                                                                                                                    'a '
+                                                                                                                                                    'tu '
+                                                                                                                                                    'criterio '
+                                                                                                                                                    'y '
+                                                                                                                                                    'riesgo. '
+                                                                                                                                                    'DBNView '
+                                                                                                                                                    'es '
+                                                                                                                                                    'un '
+                                                                                                                                                    'proyecto '
+                                                                                                                                                    'independiente '
+                                                                                                                                                    'sin '
+                                                                                                                                                    'relación '
+                                                                                                                                                    'con '
+                                                                                                                                                    'Databento, '
+                                                                                                                                                    'Inc.; '
+                                                                                                                                                    'Databento '
+                                                                                                                                                    'es '
+                                                                                                                                                    'una '
+                                                                                                                                                    'marca '
+                                                                                                                                                    'de '
+                                                                                                                                                    'su '
+                                                                                                                                                    'propietario.'},
+ '點一下關閉': {'zh_Hant': '點一下關閉',
+           'zh_Hans': '点一下关闭',
+           'en': 'Click to close',
+           'ja': 'クリックで閉じる',
+           'de': 'Zum Schließen klicken',
+           'ko': '클릭하면 닫힙니다',
+           'es': 'Haz clic para cerrar'},
+ '正在載入…': {'zh_Hant': '正在載入…',
+           'zh_Hans': '正在加载…',
+           'en': 'Loading…',
+           'ja': '読み込み中…',
+           'de': 'Wird geladen…',
+           'ko': '불러오는 중…',
+           'es': 'Cargando…'},
+ '正在載入圖表與分析模組…': {'zh_Hant': '正在載入圖表與分析模組…',
+                  'zh_Hans': '正在加载图表与分析模块…',
+                  'en': 'Loading charts and analysis modules…',
+                  'ja': 'チャートと分析モジュールを読み込み中…',
+                  'de': 'Diagramme und Analysemodule werden geladen…',
+                  'ko': '차트와 분석 모듈을 불러오는 중…',
+                  'es': 'Cargando gráficos y módulos de análisis…'},
+ '準備就緒': {'zh_Hant': '準備就緒',
+          'zh_Hans': '准备就绪',
+          'en': 'Ready',
+          'ja': '準備完了',
+          'de': 'Bereit',
+          'ko': '준비 완료',
+          'es': 'Listo'},
+ '關於 DBNView': {'zh_Hant': '關於 DBNView',
+                'zh_Hans': '关于 DBNView',
+                'en': 'About DBNView',
+                'ja': 'DBNView について',
+                'de': 'Über DBNView',
+                'ko': 'DBNView 정보',
+                'es': 'Acerca de DBNView'},
+ '說明': {'zh_Hant': '說明', 'zh_Hans': '帮助', 'en': 'Help', 'ja': 'ヘルプ', 'de': 'Hilfe', 'ko': '도움말', 'es': 'Ayuda'}}

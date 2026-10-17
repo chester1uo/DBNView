@@ -8,7 +8,6 @@ from PySide6 import QtCore, QtWidgets
 from .. import i18n, reference
 from ..engine import is_remote
 from .common import APP_NAME
-from .main_window import MainWindow
 
 
 def apply_lang(code):
@@ -35,6 +34,7 @@ class App(QtWidgets.QApplication):
         old = self.win
         path = old.fi.path if old and old.fi else None
         old.close()
+        from .main_window import MainWindow
         self.win = MainWindow()
         self.win.show()
         if path:
@@ -84,9 +84,23 @@ def main(argv=None):
     argv = sys.argv if argv is None else argv
     app = App(argv)
     apply_lang(QtCore.QSettings("dbnview", "dbnview").value("lang") or i18n.system_lang())
+    from ..i18n import T
+    from .splash import Splash, app_icon
+    app.setWindowIcon(app_icon())
+    shown = time.time()
+    splash = Splash()
+    splash.show()
+    app.processEvents()
+    splash.message(T("正在載入圖表與分析模組…"))
+    from .main_window import MainWindow  # the heavy imports (pyqtgraph, OpenGL) happen here
     win = MainWindow()
     app.win = win
+    splash.message(T("準備就緒"))
+    while time.time() - shown < 1.2 and not os.environ.get("DBNVIEW_SELFTEST"):  # keep it readable
+        app.processEvents()
+        time.sleep(0.02)
     win.show()
+    splash.finish(win)
     args = [a for a in argv[1:] if not a.startswith("-psn")]
     app.opened = {os.path.abspath(os.path.expanduser(a)) for a in args}
     for p in (args[:1] or app.pending[:1]):

@@ -82,6 +82,9 @@ class MainWindow(QtWidgets.QMainWindow):
         mb.addMenu(T("檢視")).addActions([self.a_filters, self.a_detail])
         self.a_joint = A(T("股票＋期權聯合分析…"), self, shortcut="Ctrl+J", triggered=self.open_joint)
         mb.addMenu(T("工具")).addAction(self.a_joint)
+        about = QtGui.QAction(T("關於 DBNView"), self, triggered=self.show_about)
+        about.setMenuRole(QtGui.QAction.AboutRole)
+        mb.addMenu(T("說明")).addAction(about)
         lm = mb.addMenu(T("語言") + ("" if i18n.get_lang() == "en" else " / Language"))
         grp = QtGui.QActionGroup(self)
         for code, label in i18n.LANGS:
@@ -258,6 +261,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def show_error(self, e):
         self.left.show_error(e)
+
+    def show_about(self):
+        from .splash import Splash
+        self._about = Splash(about=True)
+        self._about.show()
 
     def open_joint(self):
         from .joint_window import JointWindow
