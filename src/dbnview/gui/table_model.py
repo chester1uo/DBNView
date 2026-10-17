@@ -5,6 +5,7 @@ from PySide6 import QtCore, QtGui
 from PySide6.QtCore import Qt
 
 from .. import reference
+from ..display import pretty_field
 from ..engine import PUBLISHERS, fmt_ts
 
 
@@ -123,8 +124,8 @@ class RecordModel(QtCore.QAbstractTableModel):
             return None
         c = self.cols[sec]
         if role == Qt.DisplayRole:
-            return "#rec" if c == "_rec" else c
+            return pretty_field(c)
         if role == Qt.ToolTipRole:
-            return "%s\n%s" % (c, reference.field_doc(c))
+            return "%s  (%s)\n%s" % (pretty_field(c), c, reference.field_doc(c))
         return None
 

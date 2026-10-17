@@ -3,6 +3,7 @@ from PySide6 import QtWidgets
 
 from .. import reference
 from ..analysis.book import book_at
+from ..display import pretty_field
 from ..engine import PUBLISHERS
 from ..i18n import T
 from .common import MONO_CSS, blend, esc, field_color, fmt_n, fmt_px, run_bg
@@ -116,7 +117,7 @@ class DetailPanel(QtWidgets.QWidget):
                 if et:
                     s += " <span style='color:%s'>= %s</span>" % (t["muted"], esc(et))
             h += ("<tr><td style='color:%s' valign=top title='%s'>%s</td><td style='%s'>%s%s</td></tr>"
-                  % (t["muted"], esc(reference.field_doc(c)), "#rec" if c == "_rec" else esc(c), MONO_CSS, s, extra))
+                  % (t["muted"], esc("%s: %s" % (c, reference.field_doc(c))), esc(pretty_field(c)), MONO_CSS, s, extra))
         return h + "</table>"
 
     def raw_html(self, raw):
@@ -142,7 +143,7 @@ class DetailPanel(QtWidgets.QWidget):
             h += ("<tr><td style='{m}'>%d<span style='color:%s'>+%d</span></td>"
                   "<td style='{m};background-color:%s'>%s</td><td style='{m};color:%s'>%s</td>"
                   "<td style='{m}'>%s</td></tr>").replace("{m}", MONO_CSS) % (
-                f[1], t["muted"], f[2], field_color(f[0], i, t["bg"]), esc(f[0]), t["muted"], esc(f[3]),
+                f[1], t["muted"], f[2], field_color(f[0], i, t["bg"]), esc(pretty_field(f[0])), t["muted"], esc(f[3]),
                 "" if f[4] is None else esc(str(f[4])))
         return h + "</table>"
 

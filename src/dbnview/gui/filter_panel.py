@@ -4,6 +4,7 @@ from PySide6.QtCore import Qt
 
 from .. import reference
 from ..i18n import T
+from ..display import pretty_stype
 from .common import esc, fmt_bytes, fmt_dur, fmt_n
 
 
@@ -71,11 +72,11 @@ class FilterPanel(QtWidgets.QScrollArea):
         sl.setContentsMargins(0, 0, 0, 0)
         sl.addWidget(self.sym_edit)
         sl.addWidget(self.sym_list)
-        form.addRow("symbol", sw)
+        form.addRow(T("代碼"), sw)
 
         self.iid_edit = QtWidgets.QLineEdit()
         self.iid_edit.setPlaceholderText(T("逗號分隔"))
-        form.addRow("instrument_id", self.iid_edit)
+        form.addRow(T("商品 ID"), self.iid_edit)
         self.t0_edit = QtWidgets.QLineEdit()
         self.t0_edit.setPlaceholderText(T("09:30 或 2026-01-02 09:30:00"))
         self.t1_edit = QtWidgets.QLineEdit()
@@ -83,9 +84,9 @@ class FilterPanel(QtWidgets.QScrollArea):
         form.addRow(T("起"), self.t0_edit)
         form.addRow(T("迄"), self.t1_edit)
         self.tf_box = QtWidgets.QComboBox()
-        self.tf_box.addItem(T("自動（ts_recv 優先）"), "auto")
-        self.tf_box.addItem("ts_recv", "ts_recv")
-        self.tf_box.addItem("ts_event", "ts_event")
+        self.tf_box.addItem(T("自動（優先接收時間）"), "auto")
+        self.tf_box.addItem(T("接收時間"), "ts_recv")
+        self.tf_box.addItem(T("事件時間"), "ts_event")
         form.addRow(T("時間欄位"), self.tf_box)
 
         self.act_boxes, self.side_boxes = {}, {}
@@ -99,7 +100,7 @@ class FilterPanel(QtWidgets.QScrollArea):
             cb.setToolTip(action_docs.get(a, ""))
             self.act_boxes[a] = cb
             al.addWidget(cb, i // 4, i % 4)
-        form.addRow("action", self.act_row)
+        form.addRow(T("動作"), self.act_row)
         self.side_row = QtWidgets.QWidget()
         sl2 = QtWidgets.QHBoxLayout(self.side_row)
         sl2.setContentsMargins(0, 0, 0, 0)
@@ -108,14 +109,14 @@ class FilterPanel(QtWidgets.QScrollArea):
             self.side_boxes[s] = cb
             sl2.addWidget(cb)
         sl2.addStretch()
-        form.addRow("side", self.side_row)
+        form.addRow(T("方向"), self.side_row)
 
         self.where_edit = QtWidgets.QLineEdit()
         self.where_edit.setFont(mono)
         self.where_edit.setPlaceholderText("size >= 10 and side == 'B'")
         self.where_edit.setToolTip(T("欄位名直接用；價格為實際數值（未定義為 NaN）。\n支援 and / or / not、+ - * /、== != < <= > >=、in (…)、abs()、isnan()。\n"
                                      "例：ask_px_00 - bid_px_00 <= 0.05、action in ('T','F')"))
-        form.addRow("where", self.where_edit)
+        form.addRow(T("條件式"), self.where_edit)
         self.cap_edit = QtWidgets.QLineEdit("1000000")
         self.cap_edit.setValidator(QtGui.QIntValidator(1, 2_000_000_000))
         self.full_cb = QtWidgets.QCheckBox(T("掃完整檔"))
@@ -181,13 +182,13 @@ class FilterPanel(QtWidgets.QScrollArea):
             " … (+%d)" % (m["n_symbols"] - 6) if m["n_symbols"] > 6 else "")
         rows = [(T("檔案"), esc(meta["path"])),
                 (T("大小"), fmt_bytes(meta["size"]) + (" (zst)" if meta["compressed"] else "")),
-                ("dataset", esc(m["dataset"])),
-                ("schema", "%s%s" % (esc(m["schema"] or "mixed"), T(" · %dB/筆") % rec["size"] if rec else "")),
-                ("DBN", "v%d%s" % (m["version"], " · ts_out" if m["ts_out"] else "")),
+                (T("資料集"), esc(m["dataset"])),
+                ("Schema", "%s%s" % (esc(m["schema"] or "mixed"), T(" · %dB/筆") % rec["size"] if rec else "")),
+                (T("DBN 版本"), "v%d%s" % (m["version"], T(" · 含送出時間") if m["ts_out"] else "")),
                 (T("時間 (%s)") % ts.tz_short, rng),
-                ("stype", "%s → %s" % (esc(m["stype_in"] or "—"), esc(m["stype_out"]))),
-                ("symbols", syms or "—"),
-                ("mappings", "%s · %s ids" % (fmt_n(m["n_mappings"]), fmt_n(m["n_instruments"])))]
+                (T("代碼體系"), "%s → %s" % (esc(pretty_stype(m["stype_in"])), esc(pretty_stype(m["stype_out"])))),
+                (T("代碼"), syms or "—"),
+                (T("代碼對應"), "%s · %s IDs" % (fmt_n(m["n_mappings"]), fmt_n(m["n_instruments"])))]
         self.info.setText("<table cellspacing=0 cellpadding=1>" + "".join(
             "<tr><td style='color:%s;padding-right:8px' valign=top>%s</td><td style='font-family:Menlo'>%s</td></tr>"
             % (t["muted"], k, v) for k, v in rows) + "</table>")

@@ -10,6 +10,7 @@ import json
 
 from ..analysis import indicators as ind
 from ..analysis import market
+from ..display import pretty_field
 from ..engine import get_tz
 from ..i18n import T
 from . import gestures
@@ -599,7 +600,7 @@ class ChartPanel(QtWidgets.QWidget):
             ys[n] = y
             col = t["bid"] if n.startswith("bid_px") else t["ask"] if n.startswith("ask_px") else \
                 t["accent"] if n in ("price", "close") else palette[i % len(palette)]
-            self.main.plot(x, y, name=n, pen=pg.mkPen(col, width=1.3), connect="finite",
+            self.main.plot(x, y, name=pretty_field(n), pen=pg.mkPen(col, width=1.3), connect="finite",
                            symbol="o" if len(x) < 300 else None, symbolSize=4, symbolBrush=col, symbolPen=None)
         m = (self.win.stats or {}).get("minutes") or []
         if m:
@@ -613,7 +614,7 @@ class ChartPanel(QtWidgets.QWidget):
 
         def ro(xv, yv):
             i = int(np.clip(np.searchsorted(x, xv), 0, len(x) - 1))
-            return "%s  " % self.ts(x[i]) + "  ".join("%s %s" % (n, _p(ys[n][i])) for n in names)
+            return "%s   " % self.ts(x[i]) + "   ".join("%s %s" % (pretty_field(n), _p(ys[n][i])) for n in names)
         self.readout_fn = ro
         self.main.autoRange()
 

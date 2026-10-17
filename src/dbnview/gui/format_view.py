@@ -2,6 +2,7 @@
 from PySide6 import QtWidgets
 
 from .. import reference
+from ..display import pretty_field
 from ..engine import metadata_layout
 from ..i18n import T
 from .common import MONO_CSS, esc, field_color, fmt_n
@@ -61,7 +62,7 @@ class FormatView(QtWidgets.QTextBrowser):
         h = T("<h2>Record layout：%s（rtype 0x%02x，%d bytes）</h2>") % (esc(rec["cls"]), rec["rtype"], rec["size"])
         h += "<table cellspacing=0 cellpadding=3 width=100%><tr>" + "".join(
             "<td width=%.2f%% style='background-color:%s;%s;font-size:10px' align=center>%s</td>" % (
-                100.0 * f[2] / rec["size"], field_color(f[0], i, t["bg"]), MONO_CSS, esc(f[0]) if f[2] >= 4 else "")
+                100.0 * f[2] / rec["size"], field_color(f[0], i, t["bg"]), MONO_CSS, esc(pretty_field(f[0])) if f[2] >= 4 else "")
             for i, f in enumerate(lay)) + "</tr></table>"
         h += (T("<p style='color:%s'>所有紀錄都以 16 bytes 的共同 header 開頭（length, rtype, publisher_id, instrument_id, ts_event），"
                 "之後依 rtype 不同。整數都是 little-endian；價格是 int64 定點數（÷1e9）；時間是 UNIX 奈秒。"
@@ -71,5 +72,7 @@ class FormatView(QtWidgets.QTextBrowser):
         for i, f in enumerate(lay):
             h += ("<tr><td style='{m}'>%d</td><td style='{m}'>%d</td><td style='{m}'>%s</td>"
                   "<td style='{m};background-color:%s'>%s</td><td style='color:%s'>%s</td></tr>").replace("{m}", MONO_CSS) % (
-                f[1], f[2], esc(f[3]), field_color(f[0], i, t["bg"]), esc(f[0]), t["muted"], esc(reference.field_doc(f[0])))
+                f[1], f[2], esc(f[3]), field_color(f[0], i, t["bg"]),
+                "%s <span style='color:%s'>%s</span>" % (esc(pretty_field(f[0])), t["muted"], esc(f[0])),
+                t["muted"], esc(reference.field_doc(f[0])))
         return h + "</table>"

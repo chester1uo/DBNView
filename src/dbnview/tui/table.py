@@ -11,6 +11,7 @@ from textual.scroll_view import ScrollView
 from textual.strip import Strip
 
 from .. import reference
+from ..display import pretty_field
 from ..engine import PUBLISHERS
 
 PAGE = 400
@@ -72,7 +73,7 @@ class RecordTable(ScrollView, can_focus=True):
         cols = [c for c in st["columns"] if c not in self.hidden]
         if cols != self.cols:
             self.cols, self.kinds = cols, st["kinds"]
-            self.widths = [max(len(c if c != "_rec" else "#rec"), WIDTH.get(self.kinds.get(c), 11)) for c in cols]
+            self.widths = [max(len(pretty_field(c)), WIDTH.get(self.kinds.get(c), 11)) for c in cols]
             self.pages.clear()
         if st["rows"] != self.n:
             self.pages.pop(self.n // PAGE, None)  # the last page may have been partial
@@ -127,8 +128,7 @@ class RecordTable(ScrollView, can_focus=True):
         if y == 0:
             segs = []
             for c, w in zip(self.cols, self.widths):
-                label = "#rec" if c == "_rec" else c
-                segs.append(Segment(label[:w].ljust(w) + " ", STYLE_HEAD))
+                segs.append(Segment(pretty_field(c)[:w].ljust(w) + " ", STYLE_HEAD))
             return Strip(segs).crop_extend(sx, sx + width, STYLE_HEAD)
         r = sy + y - 1
         o = self.row(r)

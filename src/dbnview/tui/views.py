@@ -9,7 +9,7 @@ from rich.text import Text
 from .. import reference
 from ..analysis import indicators as ind
 from ..analysis import market, options
-from ..display import fmt_bytes, fmt_n
+from ..display import fmt_bytes, fmt_n, pretty_field, pretty_stype
 from ..engine import PUBLISHERS, metadata_layout
 from ..i18n import T
 from .table import fmt_px
@@ -34,12 +34,12 @@ def metadata_view(meta, fmt):
     m, rec = meta["metadata"], meta["record"]
     syms = ", ".join(m["symbols_preview"][:6]) + (" … (+%d)" % (m["n_symbols"] - 6) if m["n_symbols"] > 6 else "")
     return kv_table([
-        (T("檔案"), meta["path"]), (T("大小"), fmt_bytes(meta["size"])), ("dataset", m["dataset"]),
-        ("schema", "%s%s" % (m["schema"] or "mixed", " · %dB" % rec["size"] if rec else "")),
-        ("DBN", "v%d" % m["version"]),
+        (T("檔案"), meta["path"]), (T("大小"), fmt_bytes(meta["size"])), (T("資料集"), m["dataset"]),
+        ("Schema", "%s%s" % (m["schema"] or "mixed", " · %dB" % rec["size"] if rec else "")),
+        (T("DBN 版本"), "v%d" % m["version"]),
         (T("時間"), "%s → %s" % (fmt(m["start"]), fmt(m["end"]) if m["end"] else "—")),
-        ("stype", "%s → %s" % (m["stype_in"] or "—", m["stype_out"])), ("symbols", syms or "—"),
-        ("mappings", "%s · %s ids" % (fmt_n(m["n_mappings"]), fmt_n(m["n_instruments"]))),
+        (T("代碼體系"), "%s → %s" % (pretty_stype(m["stype_in"]), pretty_stype(m["stype_out"]))), (T("代碼"), syms or "—"),
+        (T("代碼對應"), "%s · %s IDs" % (fmt_n(m["n_mappings"]), fmt_n(m["n_instruments"]))),
     ])
 
 
@@ -122,7 +122,7 @@ def detail_view(job, row, o, kinds, fmt, book=None):
             et = reference.enum_text(job, c, v)
             if et:
                 s.append("  = " + et, style="dim")
-        rows.append(("#rec" if c == "_rec" else c, s))
+        rows.append((pretty_field(c), s))
     parts.append(kv_table(rows, T("欄位")))
     try:
         parts += [Text(""), raw_view(job.raw(row))]
@@ -147,7 +147,7 @@ def raw_view(raw):
     for c in ("Offset", "Field", "Type", "Raw Value"):
         t.add_column(c)
     for i, f in enumerate(lay):
-        t.add_row("%d+%d" % (f[1], f[2]), Text(f[0], style=FIELD_STYLES[i % len(FIELD_STYLES)]), f[3],
+        t.add_row("%d+%d" % (f[1], f[2]), Text(pretty_field(f[0]), style=FIELD_STYLES[i % len(FIELD_STYLES)]), f[3],
                   "" if f[4] is None else str(f[4]))
     return Group(text, t)
 
@@ -169,11 +169,11 @@ def stats_view(st, s, fmt):
         return t
 
     top = Table(title=T("商品數"), box=None, header_style="dim", title_justify="left", title_style="bold")
-    for c in ("Symbol", "Instrument ID", "Rows", "Share %"):
+    for c in (T("代碼"), T("商品 ID"), "Rows", "Share %"):
         top.add_column(c, justify="right" if c in ("Rows", "Share %") else "left")
     for iid, c, sym in s["top"][:50]:
         top.add_row(sym or "—", str(iid), fmt_n(c), "%.2f" % (100 * c / max(1, st["matched"])))
-    return Group(head, Text(""), bars("Record Type", s["rtype"]), bars("Action", s["action"]), bars("Side", s["side"]),
+    return Group(head, Text(""), bars(T("紀錄類型"), s["rtype"]), bars(T("動作"), s["action"]), bars(T("方向"), s["side"]),
                  Text(""), top)
 
 
@@ -187,7 +187,8 @@ def format_view(fi, meta):
         for c in ("Offset", "Bytes", "Type", "Field", "Description"):
             t.add_column(c, overflow="fold")
         for i, f in enumerate(rec["layout"]):
-            t.add_row(str(f[1]), str(f[2]), f[3], Text(f[0], style=FIELD_STYLES[i % len(FIELD_STYLES)]),
+            t.add_row(str(f[1]), str(f[2]), f[3],
+                      Text(pretty_field(f[0]), style=FIELD_STYLES[i % len(FIELD_STYLES)]) + Text("  " + f[0], style="dim"),
                       Text(reference.field_doc(f[0]), style="dim"))
         parts += [t, Text("")]
     h = Table(title="Metadata header", header_style="dim", box=None, title_justify="left", title_style="bold")

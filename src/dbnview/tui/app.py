@@ -132,8 +132,8 @@ class DBNViewTUI(App):
         with Horizontal():
             with VerticalScroll(id="sidebar"):
                 yield Static(T("尚未開啟檔案"), id="meta")
-                yield Input(placeholder="Symbol (substring, or exact$)", id="f_symbol")
-                yield Input(placeholder="instrument_id, …", id="f_iids")
+                yield Input(placeholder=T("代碼") + " (substring, or exact$)", id="f_symbol")
+                yield Input(placeholder=T("商品 ID") + ", …", id="f_iids")
                 yield Input(placeholder=T("09:30 或 2026-01-02 09:30:00"), id="f_t0")
                 yield Input(placeholder=T("10:00（不含）"), id="f_t1")
                 yield Input(placeholder="Where: size >= 10 and side == 'B'", id="f_where")

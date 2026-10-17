@@ -8,6 +8,7 @@ from PySide6.QtCore import Qt
 from .. import reference
 from ..engine import PUBLISHERS, fmt_ts, get_tz, parse_time
 from ..i18n import T
+from ..display import pretty_field
 from .common import QTY, display_name, fmt_n, fmt_px, run_bg
 from .table_model import RecordModel
 
@@ -125,8 +126,7 @@ class TablePanel(QtWidgets.QWidget):
     def apply_col_widths(self):
         hfm = QtGui.QFontMetrics(self.view.horizontalHeader().font())
         for i, c in enumerate(self.model.cols):
-            label = "#rec" if c == "_rec" else c
-            self.view.setColumnWidth(i, max(self.col_width(c), hfm.horizontalAdvance(label) + 28))
+            self.view.setColumnWidth(i, max(self.col_width(c), hfm.horizontalAdvance(pretty_field(c)) + 28))
 
     def fill_col_menu(self, menu=None, popup=None):
         menu = menu if menu is not None else QtWidgets.QMenu(self)
@@ -136,10 +136,10 @@ class TablePanel(QtWidgets.QWidget):
             lambda: self.set_hidden(self.hidden | COMPACT_HIDE))
         menu.addSeparator()
         for c in self.model.allcols:
-            act = menu.addAction("#rec" if c == "_rec" else c)
+            act = menu.addAction(pretty_field(c))
             act.setCheckable(True)
             act.setChecked(c not in self.hidden)
-            act.setToolTip(reference.field_doc(c))
+            act.setToolTip("%s\n%s" % (c, reference.field_doc(c)))
             act.toggled.connect(lambda on, c=c: self.set_hidden(self.hidden - {c} if on else self.hidden | {c}))
         if popup is not None:
             menu.exec(popup)

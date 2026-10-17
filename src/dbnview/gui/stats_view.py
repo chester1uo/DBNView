@@ -50,9 +50,9 @@ class StatsView(QtWidgets.QTextBrowser):
             tile(T("商品數"), fmt_n(s["n_instruments"])),
             T("<td valign=top><span style='color:%s'>時間範圍 (%s)</span><br><span style='font-family:Menlo'>%s</span></td>")
             .replace("font-family:Menlo", MONO_CSS) % (t["muted"], ts.tz_short, span))
-        h += ("<table width=100%%><tr><td valign=top><h3>Record Type</h3>%s</td><td valign=top><h3>Action</h3>%s</td>"
-              "<td valign=top><h3>Side</h3>%s</td></tr></table>") % (
-            self.hbars(s["rtype"]), self.hbars(s["action"]), self.hbars(s["side"]))
+        h += ("<table width=100%%><tr><td valign=top><h3>%s</h3>%s</td><td valign=top><h3>%s</h3>%s</td>"
+              "<td valign=top><h3>%s</h3>%s</td></tr></table>") % (
+            T("紀錄類型"), self.hbars(s["rtype"]), T("動作"), self.hbars(s["action"]), T("方向"), self.hbars(s["side"]))
         h += T("<h3>前 %d 個商品（依筆數）</h3><table cellspacing=0 cellpadding=3 width=100%%>") % len(s["top"])
         h += T("<tr style='color:%s'><th align=left>symbol</th><th align=left>instrument_id</th><th align=right>筆數</th>"
                "<th align=right>占比</th><th></th></tr>") % t["muted"]
