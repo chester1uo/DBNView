@@ -73,6 +73,11 @@ Copy `dist/dbnview-web.pyz` to the server and run `python dbnview-web.pyz /data`
   - price lines
 - **Statistics and format guide**: record-type, action and side distributions, and the top instruments. The format
   guide covers what the schema means, the record and metadata-header byte layouts, enum meanings and common pitfalls.
+- **Option walls**: open interest (from OPRA statistics), volume and dealer gamma exposure by strike, with the
+  call wall, put wall, total GEX and the gamma flip level (desktop tab and terminal tab 7).
+- **Stock + options analysis** (Tools → Stock + Options Analysis…, Ctrl/⌘+J): a separate window that lines up an
+  underlying file and an option file on one time grid — price with the parity-implied spot and the front straddle's
+  expected move, front and ~30-day ATM IV against realized volatility, skew, call/put volume and the put/call ratio.
 - **IV surface** for OPRA options: a snapshot at a chosen time, put-call-parity forwards and Black-76 implied
   volatility. Results show as a 3D surface, a heatmap, smile and term-structure slices, and can be exported to CSV.
 - **Remote files over ssh** (`ssh host cat`, using your `~/.ssh/config` keys), drag & drop, trackpad pinch zoom.
