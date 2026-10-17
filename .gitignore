@@ -13,3 +13,4 @@ packaging/dbnview.iconset/
 *.zst
 *.dbn.zst
 *.parquet
+dist_staging/
