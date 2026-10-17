@@ -45,7 +45,7 @@ class App(QtWidgets.QApplication):
         if e.type() == QtCore.QEvent.FileOpen:
             # macOS also turns command-line arguments into FileOpen events: skip duplicates and non-files
             p = e.file()
-            if not os.path.isfile(p):
+            if not os.path.isfile(p) or not p.lower().endswith((".dbn", ".zst")):
                 return True
             if self.win is None:
                 self.pending.append(p)

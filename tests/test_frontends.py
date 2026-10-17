@@ -51,7 +51,7 @@ def test_tui_headless(option_file):
             await pilot.press("down", "2")
             await pilot.pause(0.3)
             assert app.row == 1
-            for key in "3456":
+            for key in "34567":
                 await pilot.press(key)
                 await pilot.pause(0.5)
             for _ in range(60):
@@ -59,6 +59,11 @@ def test_tui_headless(option_file):
                     break
                 await pilot.pause(0.1)
             assert app.iv_surface is not None and len(app.iv_surface["iv"]) > 10
+            for _ in range(60):
+                if app.walls_result is not None:
+                    break
+                await pilot.pause(0.1)
+            assert app.walls_result is not None and app.walls_result["has_vol"] is False
 
     asyncio.run(run())
 

@@ -343,3 +343,41 @@ def iv_view(s, width, height):
         plt.title("ATM IV Term Structure (%) vs. Days to Expiry")
         parts += [Text(""), Text.from_ansi(plt.build())]
     return Group(*parts)
+
+
+def walls_view(w, width, pct=0.08):
+    """Option walls as a strike table with call/put bars, plus the key levels."""
+    if w is None:
+        return Text(T("此位置沒有足夠資料"), style="dim")
+    spot = w["spot"]
+    k = w["strike"]
+    keep = np.abs(k - spot) <= spot * pct if spot else np.ones(len(k), bool)
+    metric = "gex" if w["has_gex"] else ("oi" if w["has_oi"] else "vol")
+    call = {"gex": w["call_gex"], "oi": w["call_oi"], "vol": w["call_vol"]}[metric][keep]
+    put = {"gex": -w["put_gex"], "oi": w["put_oi"], "vol": w["put_vol"]}[metric][keep]
+    k = k[keep]
+    big = lambda v: next(("%.2f%s" % (v / n, u) for u, n in (("B", 1e9), ("M", 1e6), ("K", 1e3)) if abs(v) >= n),
+                         "%.0f" % v)
+    levels = Text()
+    for label, v, style in ((T("標的價"), spot, "cyan"), (T("Call 牆"), w["call_wall"], "green"),
+                            (T("Put 牆"), w["put_wall"], "red"), (T("Gamma 翻轉點"), w["zero_gamma"], "yellow")):
+        if v:
+            levels.append("%s %s   " % (label, ("%.2f" % v) if label != T("Call 牆") and label != T("Put 牆") else "%g" % v),
+                          style=style)
+    if w["total_gex"] is not None:
+        levels.append("%s %s" % (T("總 Gamma 曝險"), big(w["total_gex"])))
+    title = {"gex": T("Gamma 曝險（每 1% 變動）"), "oi": T("持倉量"), "vol": T("成交量")}[metric]
+    bw = max(10, (width - 40) // 2)
+    mx = max(float(np.max(np.abs(np.r_[call, put]))) if len(k) else 1, 1e-9)
+    t = Table(title=title, header_style="dim", box=None, title_justify="left", title_style="bold")
+    t.add_column("Put", justify="right", no_wrap=True)
+    t.add_column("", justify="right", no_wrap=True, width=bw)
+    t.add_column(T("履約價"), justify="center", no_wrap=True)
+    t.add_column("", no_wrap=True, width=bw)
+    t.add_column("Call", no_wrap=True)
+    for K, c, p in sorted(zip(k, call, put), reverse=True):
+        mark = "◀" if spot and abs(K - spot) == min(abs(k - spot)) else " "
+        kstyle = "bold cyan" if mark != " " else ("green" if K == w["call_wall"] else "red" if K == w["put_wall"] else "")
+        t.add_row(big(p), Text("█" * int(round(bw * p / mx)), style="red"), Text("%g %s" % (K, mark), style=kstyle),
+                  Text("█" * int(round(bw * c / mx)), style="green"), big(c))
+    return Group(levels, Text(""), t)

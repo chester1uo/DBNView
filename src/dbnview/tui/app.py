@@ -1,7 +1,7 @@
 """Terminal UI: `dbnview-tui [file | dir | ssh://host/path]` (also `python -m dbnview.tui`).
 
 Keys: o open · s scan · x stop · / filter · f sidebar · enter detail · b MBO book · c chart mode
-      i technical indicator · t time zone · 1-6 tabs · e export CSV · q quit
+      i technical indicator · t time zone · 1-7 tabs · e export CSV · q quit
 """
 import argparse
 import csv
@@ -12,6 +12,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
+from rich.text import Text
 from textual.widgets import Button, Footer, Header, Input, Label, ListItem, ListView, Static, TabbedContent, TabPane
 
 from .. import __version__, i18n, reference
@@ -110,9 +111,9 @@ class DBNViewTUI(App):
         Binding("x", "stop", "Stop"), Binding("slash", "focus_filter", "Filter"),
         Binding("f", "toggle_sidebar", "Sidebar"), Binding("b", "book", "Book"), Binding("c", "chart_mode", "Chart"),
         Binding("i", "next_indicator", "Indicator"), Binding("t", "next_tz", "TZ"), Binding("e", "export", "CSV"), Binding("enter", "show_detail", "Detail", show=False),
-        *[Binding(str(i + 1), "tab(%d)" % i, show=False) for i in range(6)],
+        *[Binding(str(i + 1), "tab(%d)" % i, show=False) for i in range(7)],
     ]
-    TABS = ["table", "detail", "chart", "stats", "format", "iv"]
+    TABS = ["table", "detail", "chart", "stats", "format", "iv", "walls"]
 
     def __init__(self, path=None, tz="America/New_York"):
         super().__init__()
@@ -125,6 +126,7 @@ class DBNViewTUI(App):
         self.chart_mode = 0
         self.indicator = 0
         self.iv_surface = None
+        self.walls_result = None
 
     # ---- layout ------------------------------------------------------------------------
     def compose(self) -> ComposeResult:
@@ -155,6 +157,8 @@ class DBNViewTUI(App):
                     with Vertical(classes="pane"):
                         yield Input(placeholder=T("時間") + " (15:45) · Enter", id="iv_time")
                         yield VerticalScroll(Static(id="iv_body"))
+                with TabPane(T("期權牆"), id="walls"):
+                    yield VerticalScroll(Static(id="walls_body"), classes="pane")
         yield Footer()
 
     def on_mount(self):
@@ -217,7 +221,7 @@ class DBNViewTUI(App):
         except Exception as e:  # noqa: BLE001
             self.notify("%s: %s" % (type(e).__name__, e), severity="error", timeout=10)
             return
-        self.status = self.stats = self.book = self.iv_surface = None
+        self.status = self.stats = self.book = self.iv_surface = self.walls_result = None
         self._final_done = False
         table = self.query_one("#records", RecordTable)
         table.set_job(self.job)
@@ -287,6 +291,8 @@ class DBNViewTUI(App):
             self.query_one("#stats_body", Static).update(views.stats_view(self.status, self.stats, self.fmt))
         elif active == "iv" and self.iv_surface is None and self.job.done:
             self.compute_iv()
+        elif active == "walls" and self.walls_result is None and self.job.done:
+            self.compute_walls()
 
     @work(thread=True, exclusive=True, group="chart")
     def _draw_chart(self, iid, mode):
@@ -356,6 +362,30 @@ class DBNViewTUI(App):
         body = self.query_one("#iv_body", Static)
         r = views.iv_view(s, max(60, body.size.width - 2), max(24, self.size.height - 8))
         self.call_from_thread(body.update, r)
+
+    # ---- option walls ------------------------------------------------------------------------------
+    def compute_walls(self):
+        body = self.query_one("#walls_body", Static)
+        if self.job is None or not options.is_option_data(self.job):
+            body.update(T("這個檔案看起來不是期權資料（找不到 OSI 期權代碼，例如 SPY   260116C00690000）。"))
+            return
+        body.update(T("計算中…"))
+        self._walls(int(self.status["tmax"]))
+
+    @work(thread=True, exclusive=True, group="walls")
+    def _walls(self, t_ns):
+        from ..analysis import walls
+        job = self.job
+        ch = options.chain(job)
+        root = options.roots(ch)[0]
+        stat = walls.find_statistics_file(job.fi.path)
+        oi = walls.load_open_interest(stat) if stat else {}
+        s = options.surface(job, t_ns, root, min_days=0, max_age_s=3600)
+        w = walls.walls(root, surface=s, oi=oi, vol=walls.volume_by_contract(job), max_days=30)
+        self.walls_result = w
+        body = self.query_one("#walls_body", Static)
+        note = Text((T("持倉量來源：%s") % display_name(stat)) if stat else T("尚未載入持倉量；只能看成交量"), style="dim")
+        self.call_from_thread(body.update, views.Group(note, views.walls_view(w, max(80, body.size.width))))
 
     # ---- misc ------------------------------------------------------------------------------------
     def action_focus_filter(self):

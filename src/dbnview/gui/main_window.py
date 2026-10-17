@@ -24,6 +24,7 @@ from .iv_panel import IVPanel
 from .remote_dialog import RemoteDialog
 from .stats_view import StatsView
 from .table_panel import TablePanel
+from .walls_panel import WallsPanel
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -135,11 +136,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stats_view.chartRequested.connect(self.chart_instrument)
         self.format_view = FormatView(self)
         self.iv = IVPanel(self)
+        self.walls = WallsPanel(self)
 
         self.tabs = QtWidgets.QTabWidget()
         self.tabs.setDocumentMode(True)
         for w, label in ((self.table, T("表格")), (self.chart, T("圖表")), (self.stats_view, T("統計")),
-                         (self.format_view, T("格式說明")), (self.iv, T("IV 曲面"))):
+                         (self.format_view, T("格式說明")), (self.iv, T("IV 曲面")),
+                         (self.walls, T("期權牆"))):
             self.tabs.addTab(w, label)
         self.tabs.currentChanged.connect(self.on_tab)
 
@@ -237,6 +240,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.show_error(st["error"])
             self.chart.fill_inst()
             self.iv.prepare()
+            self.walls.prepare()
             self.stats_view.render(self.status, self.stats)
             if self.tabs.currentWidget() is self.chart:
                 self.chart.on_instrument()
