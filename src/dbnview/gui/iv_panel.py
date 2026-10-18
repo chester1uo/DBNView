@@ -110,7 +110,8 @@ class IVPanel(QtWidgets.QWidget):
         split = QtWidgets.QSplitter(Qt.Horizontal)
         self.views = QtWidgets.QTabWidget()
         self.views.setDocumentMode(True)
-        if HAVE_GL and gestures.ZoomGLView is not None:
+        gl_ok, gl_desc = gestures.opengl_status() if HAVE_GL and gestures.ZoomGLView is not None else (False, "")
+        if gl_ok:
             self.gl = gestures.ZoomGLView()
             self.gl.setCameraPosition(distance=40, elevation=26, azimuth=-60)
             box = QtWidgets.QWidget()
@@ -138,6 +139,12 @@ class IVPanel(QtWidgets.QWidget):
         self.heat_img = None
         self.heat.scene().sigMouseClicked.connect(self.on_heat_click)
         self.views.addTab(self.heat, T("熱圖（點選截面）"))
+        if self.gl is None and gl_desc:  # after the heatmap (the default view): say why there is no 3D view
+            msg = QtWidgets.QLabel(T("這台電腦的 OpenGL 不支援 3D 檢視（%s），請改用熱圖與截面圖。") % gl_desc)
+            msg.setWordWrap(True)
+            msg.setAlignment(Qt.AlignCenter)
+            msg.setStyleSheet("color:gray; padding:24px")
+            self.views.addTab(msg, T("3D 曲面"))
         split.addWidget(self.views)
 
         right = QtWidgets.QSplitter(Qt.Vertical)

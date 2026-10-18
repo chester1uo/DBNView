@@ -1,5 +1,7 @@
-"""Trackpad pinch-to-zoom for pyqtgraph 2D plots and the 3D GL view (macOS native gestures)."""
-from PySide6 import QtCore
+"""Trackpad pinch-to-zoom for pyqtgraph 2D plots and the 3D GL view (macOS native gestures), and an OpenGL check."""
+import os
+
+from PySide6 import QtCore, QtGui
 from PySide6.QtCore import Qt
 import pyqtgraph as pg
 
@@ -7,6 +9,55 @@ try:
     import pyqtgraph.opengl as gl
 except Exception:  # noqa: BLE001
     gl = None
+
+
+_GL_STATUS = None
+
+
+def opengl_status():
+    """(usable, description) for the OpenGL a 3D view would get; probed once with an offscreen context.
+
+    pyqtgraph's 3D view needs OpenGL 2.0 or newer. Without it (virtual machines, Remote Desktop, Windows' built-in
+    "GDI Generic" 1.1 driver) the first paint raises GLError and the next GL call can crash the process, so the
+    caller falls back to 2D views. DBNVIEW_NO_GL=1 forces the fallback.
+    """
+    global _GL_STATUS
+    if _GL_STATUS is None:
+        _GL_STATUS = _probe_opengl()
+    return _GL_STATUS
+
+
+def _probe_opengl():
+    if gl is None:
+        return False, "pyqtgraph.opengl is not available"
+    if os.environ.get("DBNVIEW_NO_GL"):
+        return False, "disabled by DBNVIEW_NO_GL"
+    ctx = QtGui.QOpenGLContext()
+    if not ctx.create():
+        return False, "no OpenGL context"
+    surface = QtGui.QOffscreenSurface()
+    surface.setFormat(ctx.format())
+    surface.create()
+    try:
+        if not surface.isValid() or not ctx.makeCurrent(surface):
+            return False, "cannot use an OpenGL context"
+        f = ctx.functions()
+        version = (ctx.format().majorVersion(), ctx.format().minorVersion())
+        text = lambda name: str(f.glGetString(name) or "").strip()
+        desc = "OpenGL %s (%s)" % (text(0x1F02) or "%d.%d" % version, text(0x1F01) or "unknown renderer")
+        while f.glGetError():  # clear stale errors, then try the call that fails on a broken context
+            pass
+        f.glClearColor(0.0, 0.0, 0.0, 1.0)
+        if f.glGetError():
+            return False, desc + ": glClearColor failed"
+        if version < (2, 0) or "GDI Generic" in desc:
+            return False, desc + ": 2.0 or newer is required"
+        return True, desc
+    except Exception as e:  # noqa: BLE001 - any failure here means: do not create GL widgets
+        return False, "OpenGL check failed: %s" % e
+    finally:
+        ctx.doneCurrent()
+        surface.destroy()
 
 
 class _PinchFilter(QtCore.QObject):

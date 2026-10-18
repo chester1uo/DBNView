@@ -4070,4 +4070,14 @@ STRINGS = {'開啟遠端檔案（ssh）': {'zh_Hant': '開啟遠端檔案（ssh�
                               'de': '(nutzt nc; unter Windows separat installieren)',
                               'ko': '(nc 사용, Windows는 별도 설치 필요)',
                               'es': '(usa nc; en Windows hay que instalarlo aparte)'},
- '方式': {'zh_Hant': '方式', 'zh_Hans': '方式', 'en': 'Method', 'ja': '方式', 'de': 'Methode', 'ko': '방식', 'es': 'Método'}}
+ '方式': {'zh_Hant': '方式', 'zh_Hans': '方式', 'en': 'Method', 'ja': '方式', 'de': 'Methode', 'ko': '방식', 'es': 'Método'},
+ '這台電腦的 OpenGL 不支援 3D 檢視（%s），請改用熱圖與截面圖。': {'zh_Hant': '這台電腦的 OpenGL 不支援 3D 檢視（%s），請改用熱圖與截面圖。',
+                                           'zh_Hans': '这台电脑的 OpenGL 不支持 3D 视图（%s），请改用热图与截面图。',
+                                           'en': 'OpenGL on this computer cannot show the 3D view (%s). Use the '
+                                                 'heatmap and slice charts instead.',
+                                           'ja': 'このコンピューターの OpenGL では 3D 表示ができません（%s）。ヒートマップと断面図をご利用ください。',
+                                           'de': 'Das OpenGL dieses Computers unterstützt die 3D-Ansicht nicht (%s). '
+                                                 'Bitte Heatmap und Schnittdiagramme verwenden.',
+                                           'ko': '이 컴퓨터의 OpenGL은 3D 보기를 지원하지 않습니다(%s). 히트맵과 단면 차트를 사용하세요.',
+                                           'es': 'El OpenGL de este equipo no admite la vista 3D (%s). Usa el mapa de '
+                                                 'calor y los gráficos de corte.'}}

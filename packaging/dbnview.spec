@@ -13,9 +13,18 @@ VERSION = _init.split('__version__ = "', 1)[1].split('"', 1)[0]
 ROOT = os.path.abspath(os.path.join(SPECPATH, ".."))
 ICON = {"darwin": "dbnview.icns", "win32": "dbnview.ico"}.get(sys.platform, "icon.png")
 
+# Qt on Windows falls back to this software OpenGL (Mesa llvmpipe) when the driver is too old; ship it when present.
+BINARIES = []
+if sys.platform == "win32":
+    import PySide6
+    _sw = os.path.join(os.path.dirname(PySide6.__file__), "opengl32sw.dll")
+    if os.path.exists(_sw):
+        BINARIES.append((_sw, "PySide6"))
+
 a = Analysis(
     [os.path.join(SPECPATH, "launcher.py")],
     pathex=[os.path.join(ROOT, "src")],
+    binaries=BINARIES,
     datas=collect_data_files("dbnview") + collect_data_files("pyqtgraph"),
     hiddenimports=collect_submodules("dbnview.gui") + collect_submodules("dbnview.reference")
     + collect_submodules("pyqtgraph.opengl") + collect_submodules("OpenGL"),

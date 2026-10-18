@@ -128,3 +128,24 @@ def test_gui_attributes_do_not_shadow_qt_methods():
         root.deleteLater()
     app.processEvents()
     assert not bad, sorted(bad)
+
+
+def test_iv_panel_without_opengl_explains_and_keeps_2d_views(monkeypatch):
+    pytest.importorskip("PySide6")
+    pytest.importorskip("pyqtgraph")
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6 import QtWidgets
+    from dbnview.gui import gestures
+    from dbnview.gui.app import apply_lang
+    from dbnview.gui.main_window import MainWindow
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    apply_lang("en")
+    monkeypatch.setattr(gestures, "_GL_STATUS", (False, "OpenGL 1.1 (GDI Generic): 2.0 or newer is required"))
+    win = MainWindow()
+    assert win.iv.gl is None
+    tabs = [win.iv.views.tabText(i) for i in range(win.iv.views.count())]
+    assert win.iv.views.widget(0) is win.iv.heat and tabs[-1] == "3D Surface"
+    assert "GDI Generic" in win.iv.views.widget(len(tabs) - 1).text()
+    win.close()
+    win.deleteLater()
+    app.processEvents()
