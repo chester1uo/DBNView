@@ -18,6 +18,9 @@ It runs on macOS, Windows and Linux with Python 3.9 or newer.
 
 ## Quick start
 
+Prebuilt packages (macOS DMG, Windows installer, Linux tarball) are on the
+[Releases](https://github.com/chester1uo/DBNView/releases) page.
+
 Install from a clone:
 
 ```bash

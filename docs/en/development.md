@@ -268,6 +268,28 @@ machine that has Python 3.9+ with `numpy` and `zstandard`.
 The version comes from `dbnview.__version__` (`src/dbnview/__init__.py`). `pyproject.toml` declares the package data
 (`engine/spec.json`, `web/static/*.html`).
 
+### 8.4 Installers and GitHub releases
+
+```bash
+packaging/make_dmg.sh dist/DBNView.app DBNView-0.5.0-macOS-arm64.dmg     # macOS, after signing
+iscc /DAppVersion=0.5.0 packaging/dbnview.iss                            # Windows (Inno Setup 6)
+```
+
+The DMG holds the app and an `Applications` shortcut. The Windows installer installs per user without administrator
+rights, adds Start-menu entries and an "Open with" entry for `.dbn` / `.zst`, and writes
+`dist/DBNView-<version>-Windows-Setup.exe`.
+
+To publish a release, bump `__version__`, commit, then push a matching tag:
+
+```bash
+git tag v0.5.0 && git push origin v0.5.0
+```
+
+`.github/workflows/release.yml` checks that the tag matches the version, builds the macOS DMG (Apple silicon), the
+Windows installer and portable zip, the Linux tarball and the web zipapp, and publishes them with `SHA256SUMS.txt`
+on a GitHub release whose text is `.github/release-notes.md`. It can be re-run for an existing tag from the Actions
+tab (**Run workflow**).
+
 ## 9. Continuous integration
 
 `.github/workflows/ci.yml` runs on GitHub Actions on every push and pull request. It has two jobs:

@@ -260,6 +260,26 @@ python tools/build_web_pyz.py            # writes dist/dbnview-web.pyz
 版本号来自 `dbnview.__version__`（`src/dbnview/__init__.py`）。`pyproject.toml` 声明了包数据
 （`engine/spec.json`、`web/static/*.html`）。
 
+### 8.4 安装包与 GitHub Release
+
+```bash
+packaging/make_dmg.sh dist/DBNView.app DBNView-0.5.0-macOS-arm64.dmg     # macOS，签名之后
+iscc /DAppVersion=0.5.0 packaging/dbnview.iss                            # Windows（Inno Setup 6）
+```
+
+DMG 里包含 App 和一个“应用程序”快捷方式。Windows 安装程序按当前用户安装，不需要管理员权限，会添加开始菜单项
+和 `.dbn` / `.zst` 的“打开方式”，输出 `dist/DBNView-<版本>-Windows-Setup.exe`。
+
+发布新版本：修改 `__version__` 并提交，然后推送同名标签：
+
+```bash
+git tag v0.5.0 && git push origin v0.5.0
+```
+
+`.github/workflows/release.yml` 会检查标签与版本号一致，构建 macOS DMG（Apple 芯片）、Windows 安装程序和
+免安装 zip、Linux 压缩包以及网页版 zipapp，连同 `SHA256SUMS.txt` 发布到 GitHub Release，说明文字取自
+`.github/release-notes.md`。也可以在 Actions 页面对已有标签手动重跑（**Run workflow**）。
+
 ## 9. 持续集成
 
 `.github/workflows/ci.yml` 在每次 push 和 pull request 时于 GitHub Actions 上运行，包含两个 job：

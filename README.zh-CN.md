@@ -17,6 +17,8 @@ DBNView 是 [Databento](https://databento.com) DBN 行情数据文件（`.dbn` /
 
 ## 快速开始
 
+现成的安装包（macOS DMG、Windows 安装程序、Linux 压缩包）在 [Releases](https://github.com/chester1uo/DBNView/releases) 页面。
+
 从克隆的仓库安装：
 
 ```bash
