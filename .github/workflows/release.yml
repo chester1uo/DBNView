@@ -31,6 +31,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.TAG }}
+      - name: Smoke-test scripts from this workflow's commit (a rebuilt tag may predate them)
+        if: runner.os != 'Linux'
+        uses: actions/checkout@v4
+        with:
+          path: .smoke
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -50,6 +55,17 @@ jobs:
           codesign -s - --force --deep dist/DBNView.app
           mkdir -p out
           packaging/make_dmg.sh dist/DBNView.app "out/DBNView-$VERSION-macOS-arm64.dmg"
+      # Smoke tests run the shipped artifact on the runner's real display (no QT_QPA_PLATFORM=offscreen, which
+      # hides crashes in native paint/DPI code); tools/selftest_app.py fails unless every tab is saved as a PNG.
+      - name: Smoke-test the disk image (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          MNT=$(mktemp -d)
+          hdiutil attach -nobrowse -readonly -noautoopen -mountpoint "$MNT" "out/DBNView-$VERSION-macOS-arm64.dmg"
+          rc=0
+          python .smoke/tools/selftest_app.py "$MNT/DBNView.app/Contents/MacOS/DBNView" "$RUNNER_TEMP/smoke" || rc=$?
+          hdiutil detach "$MNT" || hdiutil detach -force "$MNT"
+          exit $rc
       - name: Installer and portable zip (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -61,6 +77,31 @@ jobs:
           New-Item -ItemType Directory -Force out | Out-Null
           Move-Item "dist\DBNView-$env:VERSION-Windows-Setup.exe" out\
           Compress-Archive -Path dist\DBNView -DestinationPath "out\DBNView-$env:VERSION-Windows-x64-portable.zip"
+      - name: Smoke-test the installer (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $false  # uninstall even if the self-test fails
+          $smoke = Join-Path $env:RUNNER_TEMP "smoke"
+          $dir = Join-Path $env:RUNNER_TEMP "DBNView-install"
+          New-Item -ItemType Directory -Force $smoke | Out-Null
+          $setup = Start-Process -FilePath "out\DBNView-$env:VERSION-Windows-Setup.exe" -Wait -PassThru -ArgumentList `
+            "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/CURRENTUSER", "/DIR=`"$dir`"", "/LOG=`"$smoke\setup.log`""
+          if ($setup.ExitCode -ne 0 -or -not (Test-Path "$dir\DBNView.exe")) {
+            Get-Content "$smoke\setup.log" -ErrorAction SilentlyContinue
+            throw "installer failed (exit $($setup.ExitCode))"
+          }
+          python .smoke/tools/selftest_app.py "$dir\DBNView.exe" $smoke
+          $rc = $LASTEXITCODE
+          $un = Start-Process -FilePath "$dir\unins000.exe" -Wait -PassThru -ArgumentList `
+            "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/LOG=`"$smoke\uninstall.log`""
+          # the uninstaller re-launches itself from %TEMP%; give it time to finish removing files
+          for ($i = 0; $i -lt 60 -and (Test-Path "$dir\DBNView.exe"); $i++) { Start-Sleep 1 }
+          if ($rc -ne 0) { throw "self-test failed (exit $rc)" }
+          if ($un.ExitCode -ne 0 -or (Test-Path "$dir\DBNView.exe")) {
+            Get-Content "$smoke\uninstall.log" -ErrorAction SilentlyContinue
+            throw "uninstaller failed (exit $($un.ExitCode))"
+          }
       - name: Tarball and web server (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -72,6 +113,13 @@ jobs:
         with:
           name: release-${{ runner.os }}
           path: out/*
+      - name: Keep the smoke-test screenshots
+        if: always() && runner.os != 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoketest-${{ runner.os }}
+          path: ${{ runner.temp }}/smoke/
+          if-no-files-found: ignore
 
   release:
     needs: package
@@ -83,6 +131,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: out
+          pattern: release-*
           merge-multiple: true
       - name: Checksums
         run: cd out && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
