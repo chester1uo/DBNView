@@ -12,8 +12,9 @@ from ..engine import parse_time
 from ..i18n import T
 from . import gestures
 
-METRICS = [("gex", "Gamma 曝險"), ("oi", "持倉量"), ("vol", "成交量")]
-RANGES = [(None, "全部到期日"), (0, "當日到期 (0DTE)"), (7, "7 天內"), (30, "30 天內"), (90, "90 天內")]
+METRICS = [("gex", "Gamma Exposure"), ("oi", "Open Interest"), ("vol", "Volume")]
+RANGES = [(None, "All Expiries"), (0, "Same Day (0DTE)"), (7, "Within 7 Days"), (30, "Within 30 Days"),
+          (90, "Within 90 Days")]
 
 
 def _fmt_big(v):
@@ -51,16 +52,16 @@ class WallsPanel(QtWidgets.QWidget):
         self.time_edit.setMinimumWidth(150)
         self.time_edit.returnPressed.connect(self.compute)
         self.spot = QtWidgets.QLineEdit()
-        self.spot.setPlaceholderText(T("自動（parity）"))
+        self.spot.setPlaceholderText(T("Auto (Parity)"))
         self.spot.setMaximumWidth(110)
-        go = QtWidgets.QPushButton(T("計算"))
+        go = QtWidgets.QPushButton(T("Compute"))
         go.clicked.connect(self.compute)
         self.oi_label = QtWidgets.QLabel()
         self.oi_label.setStyleSheet("color:gray")
-        oi_btn = QtWidgets.QPushButton(T("載入持倉量…"))
-        oi_btn.setToolTip(T("選擇同一交易日的 OPRA statistics 檔（含 open interest，stat_type 9）"))
+        oi_btn = QtWidgets.QPushButton(T("Load Open Interest…"))
+        oi_btn.setToolTip(T("Pick the OPRA statistics file for the same trading day (open interest, stat_type 9)"))
         oi_btn.clicked.connect(self.choose_oi)
-        for label, w in ((T("標的"), self.root), (T("時間"), self.time_edit), (T("標的價"), self.spot)):
+        for label, w in ((T("Underlying"), self.root), (T("Time"), self.time_edit), (T("Underlying Price"), self.spot)):
             bar1.addWidget(QtWidgets.QLabel(label))
             bar1.addWidget(w)
         bar1.addWidget(go)
@@ -81,14 +82,16 @@ class WallsPanel(QtWidgets.QWidget):
         self.width_pct.setValue(8)
         self.width_pct.setSuffix(" %")
         self.width_pct.valueChanged.connect(lambda _: self.draw())
-        for label, w in ((T("指標"), self.metric_box), (T("到期範圍"), self.range), (T("履約價範圍 ±"), self.width_pct)):
+        for label, w in ((T("Metric"), self.metric_box), (T("Expiries"), self.range),
+                         (T("Strike Range ±"), self.width_pct)):
             bar2.addWidget(QtWidgets.QLabel(label))
             bar2.addWidget(w)
         bar2.addStretch()
         lay.addLayout(bar1)
         lay.addLayout(bar2)
 
-        self.note = QtWidgets.QLabel(T("開啟含期權報價的檔案，並載入同一天的持倉量（statistics）後按「計算」。"))
+        self.note = QtWidgets.QLabel(T("Open a file with option quotes, load the same day's open interest "
+                                       "(statistics), then click Compute."))
         self.note.setStyleSheet("color:gray")
         self.note.setWordWrap(True)
         self.levels = QtWidgets.QLabel(" ")
@@ -105,9 +108,9 @@ class WallsPanel(QtWidgets.QWidget):
             for ax in ("left", "bottom"):
                 p.getAxis(ax).enableAutoSIPrefix(False)
             gestures.enable_pinch(p)
-        self.bars.setLabel("left", T("履約價"))
-        self.profile.setLabel("bottom", T("標的價"))
-        self.profile.setLabel("left", T("總 Gamma 曝險（每 1% 變動）"))
+        self.bars.setLabel("left", T("Strike"))
+        self.profile.setLabel("bottom", T("Underlying Price"))
+        self.profile.setLabel("left", T("Total Gamma Exposure (per 1% Move)"))
         self.readout = QtWidgets.QLabel(" ")
         self.readout.setFont(win.mono)
         left = QtWidgets.QWidget()
@@ -147,13 +150,14 @@ class WallsPanel(QtWidgets.QWidget):
 
     def _update_oi_label(self):
         if self.oi_path:
-            self.oi_label.setText(T("持倉量來源：%s") % display_name(self.oi_path))
+            self.oi_label.setText(T("Open interest: %s") % display_name(self.oi_path))
         else:
-            self.oi_label.setText(T("尚未載入持倉量；只能看成交量"))
+            self.oi_label.setText(T("No open interest loaded; volume only"))
 
     def choose_oi(self):
         start = os.path.dirname(self.win.fi.path) if self.win.fi and not self.win.fi.path.startswith("ssh://") else ""
-        p, _ = QtWidgets.QFileDialog.getOpenFileName(self, T("載入持倉量…"), start, "DBN (*.dbn *.zst *.dbn.zst)")
+        p, _ = QtWidgets.QFileDialog.getOpenFileName(self, T("Load Open Interest…"), start,
+                                                     "DBN (*.dbn *.zst *.dbn.zst)")
         if p:
             self.set_oi_path(p)
             self.compute()
@@ -167,18 +171,19 @@ class WallsPanel(QtWidgets.QWidget):
         if root is None:
             # statistics-only file: take the roots from the open interest itself
             if self.oi_path is None:
-                self.note.setText(T("這個檔案看起來不是期權資料（找不到 OSI 期權代碼，例如 SPY   260116C00690000）。"))
+                self.note.setText(T("This file doesn't look like options data (no OSI option symbols found, e.g. "
+                                    "SPY   260116C00690000)."))
                 return
         st = self.win.status or {}
         text = self.time_edit.text().strip()
         try:
             t_ns = parse_time(text, self.win.tsfmt.tz, int(st["tmin"])) if text else (int(st["tmax"]) if st.get("tmax") else None)
         except Exception as e:  # noqa: BLE001
-            self.note.setText(T("時間格式錯誤：%s") % e)
+            self.note.setText(T("Invalid time format: %s") % e)
             return
         spot = float(self.spot.text()) if self.spot.text().strip() else None
         oi_path, cache = self.oi_path, self._oi_cache
-        self.note.setText(T("計算中…"))
+        self.note.setText(T("Computing…"))
 
         def work():
             oi = cache.get(oi_path) if oi_path else None
@@ -206,29 +211,30 @@ class WallsPanel(QtWidgets.QWidget):
         w = walls.walls(r, surface=s, oi=oi, vol=vol, spot=spot, max_days=self.range.currentData())
         self.result = w
         if w is None:
-            self.note.setText(T("此位置沒有足夠資料"))
+            self.note.setText(T("Not enough data here"))
             self.bars.clear()
             self.profile.clear()
             return
-        parts = ["%s · %d %s" % (r, len(w["strike"]), T("個履約價"))]
+        parts = ["%s · %d %s" % (r, len(w["strike"]), T("strikes"))]
         if not w["has_oi"]:
-            parts.append(T("沒有持倉量：顯示成交量；Gamma 曝險需要持倉量"))
+            parts.append(T("No open interest: showing volume; gamma exposure needs open interest"))
         if s is None:
-            parts.append(T("沒有報價：無法計算隱含波動率與 Gamma"))
+            parts.append(T("No quotes: implied volatility and gamma unavailable"))
         self.note.setText(" · ".join(parts))
         lv = []
         if w["spot"]:
-            lv.append("%s %.2f" % (T("標的價"), w["spot"]))
+            lv.append("%s %.2f" % (T("Underlying Price"), w["spot"]))
         if w["call_wall"]:
-            lv.append("%s %g" % (T("Call 牆"), w["call_wall"]))
+            lv.append("%s %g" % (T("Call Wall"), w["call_wall"]))
         if w["put_wall"]:
-            lv.append("%s %g" % (T("Put 牆"), w["put_wall"]))
+            lv.append("%s %g" % (T("Put Wall"), w["put_wall"]))
         if w["zero_gamma"]:
-            lv.append("%s %.2f" % (T("Gamma 翻轉點"), w["zero_gamma"]))
+            lv.append("%s %.2f" % (T("Gamma Flip"), w["zero_gamma"]))
         if w["total_gex"] is not None:
-            lv.append("%s %s" % (T("總 Gamma 曝險"), _fmt_big(w["total_gex"])))
+            lv.append("%s %s" % (T("Total Gamma Exposure"), _fmt_big(w["total_gex"])))
         if w["has_vol"]:
-            lv.append("%s %s / %s" % (T("成交量牆 Call/Put"), _fmt_g(w["vol_call_wall"]), _fmt_g(w["vol_put_wall"])))
+            lv.append("%s %s / %s" % (T("Volume Walls Call/Put"), _fmt_g(w["vol_call_wall"]),
+                                      _fmt_g(w["vol_put_wall"])))
         self.levels.setText("   ".join(lv))
         if self.metric_box.currentData() == "gex" and not w["has_gex"]:
             self.metric_box.setCurrentIndex(1 if w["has_oi"] else 2)
@@ -246,11 +252,11 @@ class WallsPanel(QtWidgets.QWidget):
         metric = self.metric_box.currentData()
         k = w["strike"]
         if metric == "gex":
-            call, put, label = w["call_gex"], w["put_gex"], T("Gamma 曝險（每 1% 變動）")
+            call, put, label = w["call_gex"], w["put_gex"], T("Gamma Exposure (per 1% Move)")
         elif metric == "oi":
-            call, put, label = w["call_oi"], -w["put_oi"], T("持倉量（Put 向左）")
+            call, put, label = w["call_oi"], -w["put_oi"], T("Open Interest (Puts to the Left)")
         else:
-            call, put, label = w["call_vol"], -w["put_vol"], T("成交量（Put 向左）")
+            call, put, label = w["call_vol"], -w["put_vol"], T("Volume (Puts to the Left)")
         spot = w["spot"]
         if spot:
             keep = np.abs(k - spot) <= spot * self.width_pct.value() / 100.0
@@ -265,11 +271,11 @@ class WallsPanel(QtWidgets.QWidget):
         if metric == "gex":
             net = (call + put)
             self.bars.plot(net, k, pen=pg.mkPen(t["text"], width=1.2), symbol="o", symbolSize=3,
-                           symbolBrush=t["text"], symbolPen=None, name=T("淨 Gamma"))
+                           symbolBrush=t["text"], symbolPen=None, name=T("Net Gamma"))
         self.bars.setLabel("bottom", label)
         self.bars.addItem(pg.InfiniteLine(pos=0, angle=90, pen=pg.mkPen(t["muted"])))
-        marks = [(spot, t["accent"], T("標的價")), (w["call_wall"], t["bid"], T("Call 牆")),
-                 (w["put_wall"], t["ask"], T("Put 牆")), (w["zero_gamma"], t["warn"], T("Gamma 翻轉點"))]
+        marks = [(spot, t["accent"], T("Underlying Price")), (w["call_wall"], t["bid"], T("Call Wall")),
+                 (w["put_wall"], t["ask"], T("Put Wall")), (w["zero_gamma"], t["warn"], T("Gamma Flip"))]
         for y, col, name in marks:
             if y:
                 self.bars.addItem(pg.InfiniteLine(pos=y, angle=0, pen=pg.mkPen(col, style=Qt.DashLine, width=1.2),
@@ -286,9 +292,9 @@ class WallsPanel(QtWidgets.QWidget):
                     self.profile.addItem(pg.InfiniteLine(pos=x, angle=90, pen=pg.mkPen(col, style=Qt.DashLine),
                                                          label="%s %.2f" % (name, x),
                                                          labelOpts={"color": col, "position": pos}))
-            self.profile.setTitle(T("Gamma 曝險 vs 標的價（固定隱含波動率）"))
+            self.profile.setTitle(T("Gamma Exposure vs. Underlying Price (Fixed IV)"))
         else:
-            self.profile.setTitle(T("需要報價與持倉量才能畫 Gamma 曲線"))
+            self.profile.setTitle(T("The gamma curve needs quotes and open interest"))
 
     def on_mouse(self, evt):
         w = self.result
@@ -297,9 +303,9 @@ class WallsPanel(QtWidgets.QWidget):
         y = self.bars.plotItem.vb.mapSceneToView(evt[0]).y()
         i = int(np.argmin(np.abs(w["strike"] - y)))
         self.readout.setText("%s %g   Call OI %s   Put OI %s   Call %s %s   Put %s %s   %s %s" % (
-            T("履約價"), w["strike"][i], _fmt_big(w["call_oi"][i]), _fmt_big(w["put_oi"][i]),
-            T("成交量"), _fmt_big(w["call_vol"][i]), T("成交量"), _fmt_big(w["put_vol"][i]),
-            T("淨 Gamma"), _fmt_big(w["net_gex"][i])))
+            T("Strike"), w["strike"][i], _fmt_big(w["call_oi"][i]), _fmt_big(w["put_oi"][i]),
+            T("Volume"), _fmt_big(w["call_vol"][i]), T("Volume"), _fmt_big(w["put_vol"][i]),
+            T("Net Gamma"), _fmt_big(w["net_gex"][i])))
 
 
 def _fmt_g(v):

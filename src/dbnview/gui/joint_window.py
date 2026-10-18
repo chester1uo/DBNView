@@ -26,7 +26,7 @@ class _PathRow(QtWidgets.QWidget):
         lay.setContentsMargins(0, 0, 0, 0)
         self.edit = QtWidgets.QLineEdit(settings.value(key, ""))
         self.edit.setPlaceholderText(placeholder)
-        b = QtWidgets.QPushButton(T("瀏覽…"))
+        b = QtWidgets.QPushButton(T("Browse…"))
         b.clicked.connect(self.browse)
         lab = QtWidgets.QLabel(label)
         lab.setMinimumWidth(110)
@@ -37,7 +37,7 @@ class _PathRow(QtWidgets.QWidget):
     def browse(self):
         start = os.path.dirname(self.edit.text()) if self.edit.text() and not self.edit.text().startswith("ssh://") \
             else os.path.expanduser("~")
-        p, _ = QtWidgets.QFileDialog.getOpenFileName(self, T("開啟 DBN 檔"), start, "DBN (*.dbn *.zst *.dbn.zst)")
+        p, _ = QtWidgets.QFileDialog.getOpenFileName(self, T("Open DBN File"), start, "DBN (*.dbn *.zst *.dbn.zst)")
         if p:
             self.edit.setText(p)
 
@@ -52,16 +52,18 @@ class JointWindow(QtWidgets.QMainWindow):
     def __init__(self, win):
         super().__init__(win)
         self.win = win
-        self.setWindowTitle(T("股票＋期權聯合分析"))
+        self.setWindowTitle(T("Stock + Options Analysis"))
         self.resize(1400, 950)
         self.res = None
         self._token = None
         central = QtWidgets.QWidget()
         lay = QtWidgets.QVBoxLayout(central)
         st = win.settings
-        self.stock = _PathRow(T("股票／標的檔"), T("例如 XNAS trades / mbp-1 / ohlcv-1m，或 ssh://host/path"), st, "joint/stock")
-        self.opt = _PathRow(T("期權檔"), T("例如 OPRA cbbo-1m / cmbp-1 / tcbbo / trades"), st, "joint/options")
-        self.oi = _PathRow(T("持倉量（選填）"), T("同一天的 OPRA statistics 檔；留空會自動在期權檔旁邊尋找"), st, "joint/oi")
+        self.stock = _PathRow(T("Underlying File"), T("e.g. XNAS trades / mbp-1 / ohlcv-1m, or ssh://host/path"), st,
+                              "joint/stock")
+        self.opt = _PathRow(T("Options File"), T("e.g. OPRA cbbo-1m / cmbp-1 / tcbbo / trades"), st, "joint/options")
+        self.oi = _PathRow(T("Open Interest (Optional)"), T("OPRA statistics file for the same day; leave empty to "
+                                                            "look next to the options file"), st, "joint/oi")
         if win.fi is not None and not self.opt.edit.text() and options.is_option_data(win.job):
             self.opt.edit.setText(win.fi.path)
         for row in (self.stock, self.opt, self.oi):
@@ -72,23 +74,24 @@ class JointWindow(QtWidgets.QMainWindow):
             self.interval.addItem(label, v)
         self.interval.setCurrentIndex(1)
         self.root = QtWidgets.QLineEdit()
-        self.root.setPlaceholderText(T("自動"))
+        self.root.setPlaceholderText(T("Auto"))
         self.root.setMaximumWidth(90)
         self.rate = QtWidgets.QDoubleSpinBox()
         self.rate.setRange(-5, 20)
         self.rate.setValue(4.0)
         self.rate.setSuffix(" %")
-        self.go = QtWidgets.QPushButton(T("分析"))
+        self.go = QtWidgets.QPushButton(T("Analyze"))
         self.go.setDefault(True)
         self.go.clicked.connect(self.run)
-        self.stop_btn = QtWidgets.QPushButton(T("停止"))
+        self.stop_btn = QtWidgets.QPushButton(T("Stop"))
         self.stop_btn.clicked.connect(self.stop)
-        for label, w in ((T("週期"), self.interval), (T("期權標的"), self.root), ("r", self.rate)):
+        for label, w in ((T("Interval"), self.interval), (T("Option Root"), self.root), ("r", self.rate)):
             bar.addWidget(QtWidgets.QLabel(label))
             bar.addWidget(w)
         bar.addWidget(self.go)
         bar.addWidget(self.stop_btn)
-        self.status = QtWidgets.QLabel(T("選擇股票檔與期權檔後按「分析」。兩者應為同一天、同一標的。"))
+        self.status = QtWidgets.QLabel(T("Pick the underlying and the options file, then click Analyze. Both should "
+                                         "be the same day and underlying."))
         self.status.setStyleSheet("color:gray")
         bar.addWidget(self.status, 1)
         lay.addLayout(bar)
@@ -105,12 +108,12 @@ class JointWindow(QtWidgets.QMainWindow):
     # ---- run -------------------------------------------------------------------------
     def stop(self):
         self._token = None
-        self.status.setText(T("已停止"))
+        self.status.setText(T("Stopped"))
 
     def run(self):
         stock, opt, oi_path = self.stock.path(), self.opt.path(), self.oi.path()
         if not stock and not opt:
-            self.status.setText(T("請至少選一個檔案"))
+            self.status.setText(T("Pick at least one file"))
             return
         interval = self.interval.currentData()
         root = self.root.text().strip().upper() or None
@@ -119,10 +122,11 @@ class JointWindow(QtWidgets.QMainWindow):
         self._token = token
         cancel = lambda: self._token is not token
         prog = {"opt": 0}
-        self.status.setText(T("計算中…"))
+        self.status.setText(T("Computing…"))
         timer = QtCore.QTimer(self)
         timer.setInterval(400)
-        timer.timeout.connect(lambda: self.status.setText(T("讀取期權檔… %s") % _mb(prog["opt"])) if prog["opt"] else None)
+        timer.timeout.connect(
+            lambda: self.status.setText(T("Reading options file… %s") % _mb(prog["opt"])) if prog["opt"] else None)
         timer.start()
 
         def work():
@@ -166,14 +170,14 @@ class JointWindow(QtWidgets.QMainWindow):
         self.glw.clear()
         self.glw.setBackground(t["bg"])
         stock, opt = res.get("stock"), res.get("opt")
-        rows = [("price", T("價格"))]
+        rows = [("price", T("Price"))]
         has_flow = opt is not None and (opt["call_vol"].any() or opt["put_vol"].any())
         if opt is not None:
-            rows += [("iv", T("隱含波動率 vs 實現波動率")), ("skew", T("偏斜（Put − Call IV）"))]
+            rows += [("iv", T("Implied vs. Realized Volatility (%)")), ("skew", T("Skew (Put − Call IV, vol pts)"))]
             if has_flow:
-                rows += [("flow", T("期權成交量（Put 向下）")), ("pc", T("Put/Call 比"))]
+                rows += [("flow", T("Option Volume (Puts Below Zero)")), ("pc", T("Put/Call Ratio"))]
         elif stock is not None:
-            rows += [("iv", T("實現波動率"))]
+            rows += [("iv", T("Realized Volatility"))]
         self.plots = {}
         first = None
         for i, (key, label) in enumerate(rows):
@@ -205,22 +209,26 @@ class JointWindow(QtWidgets.QMainWindow):
             iv = res["interval"]
             x = b["t"] + iv / 2
             add_candles(pp, x, b["o"], b["h"], b["l"], b["c"], iv * 0.7, t["bid"], t["ask"])
-            notes.append("%s %s · %d %s" % (T("股票"), stock["symbol"], len(x), T("根")))
-            self.plots["iv"].plot(x, 100 * stock["rv"], pen=pg.mkPen(t["warn"], width=1.4), name=T("實現波動率"),
+            notes.append("%s %s · %d %s" % (T("stock|Underlying"), stock["symbol"], len(x), T("bars")))
+            self.plots["iv"].plot(x, 100 * stock["rv"], pen=pg.mkPen(t["warn"], width=1.4),
+                                  name=T("Realized Volatility"),
                                   connect="finite")
         if opt is not None and len(opt["t"]):
             ox = opt["t"]
             pp.plot(ox, opt["spot"], pen=pg.mkPen(t["accent"], width=1.4, style=Qt.DashLine),
-                    name=T("期權隱含標的價（parity）"), connect="finite")
+                    name=T("Option-Implied Spot (Parity)"), connect="finite")
             up, dn = opt["spot"] * (1 + opt["move"]), opt["spot"] * (1 - opt["move"])
-            cu = pp.plot(ox, up, pen=pg.mkPen(t["muted"], width=0.8), connect="finite", name=T("前月跨式預期波動區間"))
+            cu = pp.plot(ox, up, pen=pg.mkPen(t["muted"], width=0.8), connect="finite",
+                         name=T("Front Straddle Expected Move"))
             cd = pp.plot(ox, dn, pen=pg.mkPen(t["muted"], width=0.8), connect="finite")
             band = QtGui.QColor(t["accent"])
             band.setAlpha(28)
             pp.addItem(pg.FillBetweenItem(cu, cd, brush=pg.mkBrush(band)))
             ivp = self.plots["iv"]
-            ivp.plot(ox, 100 * opt["front_iv"], pen=pg.mkPen(t["accent"], width=1.4), name=T("前月 ATM IV"), connect="finite")
-            ivp.plot(ox, 100 * opt["iv30"], pen=pg.mkPen("#b48cff", width=1.4), name=T("約 30 天 ATM IV"), connect="finite")
+            ivp.plot(ox, 100 * opt["front_iv"], pen=pg.mkPen(t["accent"], width=1.4), name=T("Front ATM IV"),
+                     connect="finite")
+            ivp.plot(ox, 100 * opt["iv30"], pen=pg.mkPen("#b48cff", width=1.4), name=T("~30-Day ATM IV"),
+                     connect="finite")
             self.plots["skew"].plot(ox, 100 * opt["skew"], pen=pg.mkPen("#4fc1c9", width=1.4), connect="finite")
             if has_flow:
                 w = res["interval"] * 0.8
@@ -230,16 +238,16 @@ class JointWindow(QtWidgets.QMainWindow):
                 pc = self.plots["pc"]
                 pc.plot(ox, opt["pc_ratio"], pen=pg.mkPen(t["warn"], width=1.3), connect="finite")
                 pc.addItem(pg.InfiniteLine(pos=1, angle=0, pen=pg.mkPen(t["muted"], style=Qt.DotLine)))
-            notes.append("%s %s · %d %s" % (T("期權"), opt["root"], len(ox), T("個時間點")))
+            notes.append("%s %s · %d %s" % (T("Options"), opt["root"], len(ox), T("time points")))
             if not has_flow:
-                notes.append(T("期權檔沒有成交紀錄（成交量需要 trades / tcbbo / cmbp-1）"))
+                notes.append(T("The options file has no trades (volume needs trades / tcbbo / cmbp-1)"))
             elif res.get("vol_file"):
-                notes.append(T("成交量來源：%s") % display_name(res["vol_file"]))
+                notes.append(T("Volume: %s") % display_name(res["vol_file"]))
             # walls at the last grid time, from open interest if available
             if res.get("oi"):
                 self._draw_walls(pp, res, t)
-                notes.append(T("持倉量來源：%s") % display_name(res["oi_file"]))
-        self.status.setText(" · ".join(notes) or T("此位置沒有足夠資料"))
+                notes.append(T("Open interest: %s") % display_name(res["oi_file"]))
+        self.status.setText(" · ".join(notes) or T("Not enough data here"))
         first.autoRange()
         self.proxy = pg.SignalProxy(self.glw.scene().sigMouseMoved, rateLimit=60, slot=self.on_mouse)
 
@@ -252,7 +260,7 @@ class JointWindow(QtWidgets.QMainWindow):
                         asof=dt.datetime.fromtimestamp(opt["t"][-1], dt.timezone.utc).date())
         if w is None:
             return
-        for y, col, name in ((w["call_wall"], t["bid"], T("Call 牆")), (w["put_wall"], t["ask"], T("Put 牆"))):
+        for y, col, name in ((w["call_wall"], t["bid"], T("Call Wall")), (w["put_wall"], t["ask"], T("Put Wall"))):
             if y:
                 pp.addItem(pg.InfiniteLine(pos=y, angle=0, pen=pg.mkPen(col, style=Qt.DotLine, width=1.2),
                                            label="%s %g" % (name, y),
@@ -267,13 +275,14 @@ class JointWindow(QtWidgets.QMainWindow):
         if stock:
             b = stock["bars"]
             i = int(np.clip(np.searchsorted(b["t"], x, side="right") - 1, 0, len(b["t"]) - 1))
-            parts.append("%s %s  %s %s  %s %.1f%%" % (T("收盤"), _p(b["c"][i]), T("成交量"), "{:,.0f}".format(b["v"][i]),
-                                                     T("實現波動率"), 100 * np.nan_to_num(stock["rv"][i])))
+            parts.append("%s %s  %s %s  %s %.1f%%" % (T("Close"), _p(b["c"][i]),
+                                                     T("Volume"), "{:,.0f}".format(b["v"][i]),
+                                                     T("Realized Volatility"), 100 * np.nan_to_num(stock["rv"][i])))
         if opt is not None and len(opt["t"]):
             j = int(np.clip(np.searchsorted(opt["t"], x), 0, len(opt["t"]) - 1))
             parts.append("%s %s  %s %.1f%%  30d %.1f%%  Skew %.1f  %s ±%.2f%%  P/C %s" % (
-                T("隱含標的價"), _p(opt["spot"][j]), T("前月 ATM IV"), 100 * np.nan_to_num(opt["front_iv"][j]),
-                100 * np.nan_to_num(opt["iv30"][j]), 100 * np.nan_to_num(opt["skew"][j]), T("預期波動"),
+                T("Implied Spot"), _p(opt["spot"][j]), T("Front ATM IV"), 100 * np.nan_to_num(opt["front_iv"][j]),
+                100 * np.nan_to_num(opt["iv30"][j]), 100 * np.nan_to_num(opt["skew"][j]), T("Expected Move"),
                 100 * np.nan_to_num(opt["move"][j]), _p(opt["pc_ratio"][j])))
         self.readout.setText("   ".join(parts))
 

@@ -55,11 +55,12 @@ def _render(message):
     f.setWeight(QtGui.QFont.Normal)
     p.setFont(f)
     p.setPen(QtGui.QColor("#aab4c3"))
-    p.drawText(QtCore.QRectF(x, 132, 520, 26), Qt.AlignLeft | Qt.AlignVCenter, T("Databento DBN 行情資料檢視器"))
+    p.drawText(QtCore.QRectF(x, 132, 520, 26), Qt.AlignLeft | Qt.AlignVCenter, T(
+            "Market-data viewer for Databento DBN files"))
     f.setPixelSize(13)
     p.setFont(f)
     p.setPen(QtGui.QColor("#5b9dff"))
-    p.drawText(QtCore.QRectF(x, 162, 520, 22), Qt.AlignLeft | Qt.AlignVCenter, T("版本 %s") % __version__)
+    p.drawText(QtCore.QRectF(x, 162, 520, 22), Qt.AlignLeft | Qt.AlignVCenter, T("Version %s") % __version__)
     p.setPen(QtGui.QColor("#7f8a9a"))
     p.drawText(QtCore.QRectF(x, 186, 600, 22), Qt.AlignLeft | Qt.AlignVCenter,
                "DBN v1–v3 · MBO · MBP · CBBO · OHLCV · Options · Desktop / Terminal / Browser")
@@ -69,10 +70,11 @@ def _render(message):
     p.setFont(f)
     box = QtCore.QRectF(x, HEIGHT - 128, WIDTH - 2 * x, 76)
     p.setPen(QtGui.QColor("#9aa4b1"))
-    p.drawText(box, Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, T("免責聲明：") + T(
-        "本軟體僅供研究與教育用途，不構成任何投資建議或交易依據。行情資料與計算結果（例如隱含波動率、Gamma 曝險）"
-        "可能不準確或有延遲，使用者須自行判斷並承擔風險。DBNView 為獨立專案，與 Databento, Inc. 無任何關聯；"
-        "Databento 為其所有者的商標。"))
+    p.drawText(box, Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, T("Disclaimer: ") + T(
+        "This software is for research and educational use only and is not investment advice or a basis "
+        "for trading. Market data and computed results (such as implied volatility and gamma exposure) may "
+        "be inaccurate or delayed; you use them at your own judgment and risk. DBNView is an independent "
+        "project with no affiliation to Databento, Inc.; Databento is a trademark of its owner."))
     # status line
     f.setPixelSize(12)
     p.setFont(f)
@@ -88,7 +90,7 @@ class Splash(QtWidgets.QSplashScreen):
     """Startup splash; click to dismiss. `about=True` makes it stay until clicked (Help -> About)."""
 
     def __init__(self, about=False):
-        super().__init__(_render(T("點一下關閉") if about else T("正在載入…")))
+        super().__init__(_render(T("Click to close") if about else T("Loading…")))
         self.setWindowFlag(Qt.WindowStaysOnTopHint, not about)
 
     def message(self, text):

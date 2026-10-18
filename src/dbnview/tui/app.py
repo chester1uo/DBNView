@@ -45,7 +45,7 @@ class OpenScreen(ModalScreen):
 
     def compose(self) -> ComposeResult:
         with Vertical(id="box"):
-            yield Label(T("開啟檔案…") + "  (Enter · Backspace ↑ · Esc)")
+            yield Label(T("Open File…") + "  (Enter · Backspace ↑ · Esc)")
             yield Input(self.dir, id="dir")
             yield ListView(id="entries")
 
@@ -133,31 +133,31 @@ class DBNViewTUI(App):
         yield Header(show_clock=False)
         with Horizontal():
             with VerticalScroll(id="sidebar"):
-                yield Static(T("尚未開啟檔案"), id="meta")
-                yield Input(placeholder=T("代碼") + " (substring, or exact$)", id="f_symbol")
-                yield Input(placeholder=T("商品 ID") + ", …", id="f_iids")
-                yield Input(placeholder=T("09:30 或 2026-01-02 09:30:00"), id="f_t0")
-                yield Input(placeholder=T("10:00（不含）"), id="f_t1")
+                yield Static(T("No File Open"), id="meta")
+                yield Input(placeholder=T("Symbol") + " (substring, or exact$)", id="f_symbol")
+                yield Input(placeholder=T("Instrument ID") + ", …", id="f_iids")
+                yield Input(placeholder=T("09:30 or 2026-01-02 09:30:00"), id="f_t0")
+                yield Input(placeholder=T("10:00 (exclusive)"), id="f_t1")
                 yield Input(placeholder="Where: size >= 10 and side == 'B'", id="f_where")
                 yield Input("1000000", placeholder="Max rows", id="f_cap")
-                yield Button(T("掃描"), id="scan", variant="primary")
+                yield Button(T("Scan"), id="scan", variant="primary")
                 yield Static("—", id="progress")
             with TabbedContent(id="tabs"):
-                with TabPane(T("表格"), id="table"):
+                with TabPane(T("Table"), id="table"):
                     yield RecordTable(self.fmt, id="records")
-                with TabPane(T("明細"), id="detail"):
+                with TabPane(T("Detail"), id="detail"):
                     yield VerticalScroll(Static(id="detail_body"), classes="pane")
-                with TabPane(T("圖表"), id="chart"):
+                with TabPane(T("Chart"), id="chart"):
                     yield Static(id="chart_body", classes="pane")
-                with TabPane(T("統計"), id="stats"):
+                with TabPane(T("Statistics"), id="stats"):
                     yield VerticalScroll(Static(id="stats_body"), classes="pane")
-                with TabPane(T("格式說明"), id="format"):
+                with TabPane(T("Format Guide"), id="format"):
                     yield VerticalScroll(Static(id="format_body"), classes="pane")
-                with TabPane(T("IV 曲面"), id="iv"):
+                with TabPane(T("IV Surface"), id="iv"):
                     with Vertical(classes="pane"):
-                        yield Input(placeholder=T("時間") + " (15:45) · Enter", id="iv_time")
+                        yield Input(placeholder=T("Time") + " (15:45) · Enter", id="iv_time")
                         yield VerticalScroll(Static(id="iv_body"))
-                with TabPane(T("期權牆"), id="walls"):
+                with TabPane(T("Option Walls"), id="walls"):
                     yield VerticalScroll(Static(id="walls_body"), classes="pane")
         yield Footer()
 
@@ -185,7 +185,7 @@ class DBNViewTUI(App):
     def open_path(self, path):
         if not path:
             return
-        self.notify(T("讀取檔頭… %s") % path)
+        self.notify(T("Reading header… %s") % path)
         self._load_file(path)
 
     @work(thread=True, exclusive=True, group="open")
@@ -343,15 +343,16 @@ class DBNViewTUI(App):
     def compute_iv(self):
         if self.job is None or not options.is_option_data(self.job):
             self.query_one("#iv_body", Static).update(
-                T("這個檔案看起來不是期權資料（找不到 OSI 期權代碼，例如 SPY   260116C00690000）。"))
+                T("This file doesn't look like options data (no OSI option symbols found, e.g. SPY   "
+                  "260116C00690000)."))
             return
         text = self.query_one("#iv_time", Input).value.strip()
         try:
             t_ns = parse_time(text, self.tsfmt.tz, int(self.status["tmin"])) if text else int(self.status["tmax"])
         except Exception as e:  # noqa: BLE001
-            self.notify(T("時間格式錯誤：%s") % e, severity="error")
+            self.notify(T("Invalid time format: %s") % e, severity="error")
             return
-        self.query_one("#iv_body", Static).update(T("計算中…"))
+        self.query_one("#iv_body", Static).update(T("Computing…"))
         self._iv(t_ns)
 
     @work(thread=True, exclusive=True, group="iv")
@@ -367,9 +368,10 @@ class DBNViewTUI(App):
     def compute_walls(self):
         body = self.query_one("#walls_body", Static)
         if self.job is None or not options.is_option_data(self.job):
-            body.update(T("這個檔案看起來不是期權資料（找不到 OSI 期權代碼，例如 SPY   260116C00690000）。"))
+            body.update(T("This file doesn't look like options data (no OSI option symbols found, e.g. SPY   "
+                          "260116C00690000)."))
             return
-        body.update(T("計算中…"))
+        body.update(T("Computing…"))
         self._walls(int(self.status["tmax"]))
 
     @work(thread=True, exclusive=True, group="walls")
@@ -384,7 +386,8 @@ class DBNViewTUI(App):
         w = walls.walls(root, surface=s, oi=oi, vol=walls.volume_by_contract(job), max_days=30)
         self.walls_result = w
         body = self.query_one("#walls_body", Static)
-        note = Text((T("持倉量來源：%s") % display_name(stat)) if stat else T("尚未載入持倉量；只能看成交量"), style="dim")
+        note = Text((T("Open interest: %s") % display_name(stat)) if stat else T(
+                "No open interest loaded; volume only"), style="dim")
         self.call_from_thread(body.update, views.Group(note, views.walls_view(w, max(80, body.size.width))))
 
     # ---- misc ------------------------------------------------------------------------------------
@@ -423,7 +426,7 @@ class DBNViewTUI(App):
                 for r in job.rows(off, 50000)["rows"]:
                     w.writerow([fmt_ts(v, tz) if job.kinds.get(c) == "ts" and v is not None else ("" if v is None else v)
                                 for c, v in zip(job.columns, r)])
-        self.call_from_thread(self.notify, T("已匯出 %s 列 → %s") % ("{:,}".format(job.n), path))
+        self.call_from_thread(self.notify, T("Exported %s rows → %s") % ("{:,}".format(job.n), path))
 
 
 def main(argv=None):

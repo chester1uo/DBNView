@@ -15,10 +15,11 @@ from ..engine import get_tz
 from ..i18n import T
 from . import gestures
 
-MODES = [("kline", "K 線"), ("quotes", "報價"), ("flow", "訂單流"), ("heatmap", "訂單簿熱圖"), ("line", "價格線")]
-INTERVAL_CHOICES = [(None, "自動"), (1, "1s"), (5, "5s"), (15, "15s"), (30, "30s"), (60, "1m"), (300, "5m"),
+MODES = [("kline", "Candles"), ("quotes", "Quotes"), ("flow", "Order Flow"), ("heatmap", "Order Book Heatmap"),
+         ("line", "Price Line")]
+INTERVAL_CHOICES = [(None, "Auto"), (1, "1s"), (5, "5s"), (15, "15s"), (30, "30s"), (60, "1m"), (300, "5m"),
                     (900, "15m"), (1800, "30m"), (3600, "1h"), (14400, "4h"), (86400, "1D"), (604800, "1W")]
-SOURCES = [("auto", "自動"), ("trades", "成交"), ("mid", "報價 mid")]
+SOURCES = [("auto", "Auto"), ("trades", "Trade"), ("mid", "Quote Mid")]
 
 
 def fmt_iv(s):
@@ -80,7 +81,7 @@ class ChartPanel(QtWidgets.QWidget):
         self.inst.setFont(win.mono)
         self.inst.activated.connect(lambda _: (self.iid.clear(), self.on_instrument()))
         self.iid = QtWidgets.QLineEdit()
-        self.iid.setPlaceholderText(T("或輸入 instrument_id"))
+        self.iid.setPlaceholderText(T("or enter Instrument ID"))
         self.iid.setMaximumWidth(170)
         self.iid.returnPressed.connect(self.on_instrument)
         self.mode = QtWidgets.QComboBox()
@@ -96,11 +97,11 @@ class ChartPanel(QtWidgets.QWidget):
         for k, label in SOURCES:
             self.src.addItem(T(label), k)
         self.src.activated.connect(lambda _: self.draw())
-        btn = QtWidgets.QPushButton(T("畫圖"))
+        btn = QtWidgets.QPushButton(T("Plot"))
         btn.clicked.connect(self.draw)
-        self.src_label = QtWidgets.QLabel(T("來源"))
+        self.src_label = QtWidgets.QLabel(T("Source"))
         self.ind_btn = QtWidgets.QToolButton()
-        self.ind_btn.setText(T("技術指標"))
+        self.ind_btn.setText(T("Indicators"))
         self.ind_btn.setPopupMode(QtWidgets.QToolButton.InstantPopup)
         self.ind_menu = QtWidgets.QMenu(self)
         self.ind_menu.aboutToShow.connect(self.fill_ind_menu)
@@ -109,7 +110,8 @@ class ChartPanel(QtWidgets.QWidget):
         self.active_inds = [k for k in json.loads(settings.value("indicators", '["sma", "sma2"]')) if k in ind.INDICATORS]
         self.ind_params = {k: v for k, v in json.loads(settings.value("indicator_params", "{}")).items()
                            if k in ind.INDICATORS}
-        for w in (self.inst, self.iid, QtWidgets.QLabel(T("圖型")), self.mode, QtWidgets.QLabel(T("週期")), self.ivbox,
+        for w in (self.inst, self.iid, QtWidgets.QLabel(T("chart type|Chart")), self.mode,
+                  QtWidgets.QLabel(T("Interval")), self.ivbox,
                   self.src_label, self.src, self.ind_btn, btn):
             bar.addWidget(w)
         bar.addStretch()
@@ -182,7 +184,7 @@ class ChartPanel(QtWidgets.QWidget):
     def fill_ind_menu(self):
         m = self.ind_menu
         m.clear()
-        for title, kind in ((T("疊加在價格圖"), "overlay"), (T("獨立副圖"), "pane")):
+        for title, kind in ((T("Overlay on Price"), "overlay"), (T("Separate Panes"), "pane")):
             m.addSection(title)
             for key, spec in ind.INDICATORS.items():
                 if spec["kind"] != kind:
@@ -192,8 +194,8 @@ class ChartPanel(QtWidgets.QWidget):
                 a.setChecked(key in self.active_inds)
                 a.toggled.connect(lambda on, key=key: self.toggle_indicator(key, on))
         m.addSeparator()
-        m.addAction(T("指標參數…")).triggered.connect(self.edit_params)
-        m.addAction(T("全部清除")).triggered.connect(lambda: self.set_indicators([]))
+        m.addAction(T("Indicator Parameters…")).triggered.connect(self.edit_params)
+        m.addAction(T("Clear All")).triggered.connect(lambda: self.set_indicators([]))
 
     def toggle_indicator(self, key, on):
         keys = [k for k in self.active_inds if k != key] + ([key] if on else [])
@@ -207,7 +209,7 @@ class ChartPanel(QtWidgets.QWidget):
 
     def edit_params(self):
         dlg = QtWidgets.QDialog(self)
-        dlg.setWindowTitle(T("指標參數…"))
+        dlg.setWindowTitle(T("Indicator Parameters…"))
         form = QtWidgets.QFormLayout(dlg)
         boxes = {}
         for key, spec in ind.INDICATORS.items():
@@ -305,7 +307,7 @@ class ChartPanel(QtWidgets.QWidget):
             self.profile.setYLink(self.main)
             self.profile.hideAxis("left")
             self.profile.setMaximumWidth(150)
-            self.profile.setLabel("bottom", T("量"))
+            self.profile.setLabel("bottom", T("profile|Volume"))
             plots.append(self.profile)
         self.subs = []
         for r in range(sub_rows):
@@ -377,7 +379,7 @@ class ChartPanel(QtWidgets.QWidget):
               "flow": lambda: market.flow(job, iid, iv),
               "heatmap": lambda: market.heatmap(job, iid),
               "line": lambda: market.price_series(job, int(iid), 8000)}[mode]
-        self.note.setText(T("計算中…"))
+        self.note.setText(T("Computing…"))
         sym = self.win.fi.symmap.lookup(int(iid)) or ""
 
         def done(r):
@@ -392,7 +394,7 @@ class ChartPanel(QtWidgets.QWidget):
 
     def head(self, sym, iid, extra):
         trunc = self.win.status and self.win.status.get("truncated")
-        return "%s #%s · %s%s" % (sym, iid, extra, T(" · 僅已載入的列") if trunc else "")
+        return "%s #%s · %s%s" % (sym, iid, extra, T(" · loaded rows only") if trunc else "")
 
     def empty(self, msg):
         self.glw.clear()
@@ -404,7 +406,7 @@ class ChartPanel(QtWidgets.QWidget):
     def draw_kline(self, r, sym, iid):
         bars, fl = r
         if bars is None or len(bars["t"]) == 0:
-            return self.empty(T("此商品沒有可畫 K 線的資料"))
+            return self.empty(T("No data to draw candles for this instrument"))
         t = self.colors()
         has_flow = bars.get("buy") is not None
         n_panes = sum(1 for k in self.active_inds if ind.INDICATORS[k]["kind"] == "pane")
@@ -421,7 +423,7 @@ class ChartPanel(QtWidgets.QWidget):
         if has_flow:
             vol.addItem(pg.BarGraphItem(x=x, height=bars["buy"], width=ivs * 0.8, brush=t["bid"], pen=None))
             vol.addItem(pg.BarGraphItem(x=x, height=-bars["sell"], width=ivs * 0.8, brush=t["ask"], pen=None))
-            vol.setLabel("left", T("買／賣量"))
+            vol.setLabel("left", T("Buy/Sell Volume"))
             cvd = np.cumsum(bars["buy"] - bars["sell"])
             self.subs[1].plot(x, cvd, pen=pg.mkPen(t["accent"], width=1.4), stepMode=None)
             self.subs[1].setLabel("left", "CVD")
@@ -429,21 +431,22 @@ class ChartPanel(QtWidgets.QWidget):
             rising = bars["c"] >= bars["o"]
             brushes = [pg.mkBrush(t["bid"] if u else t["ask"]) for u in rising]
             vol.addItem(pg.BarGraphItem(x=x, height=bars["v"], width=ivs * 0.8, brushes=brushes, pen=None))
-            vol.setLabel("left", T("筆數") if bars.get("v_is_count") else T("成交量"))
-        src = {"bars": T("原始 K 線"), "trades": T("由成交聚合"), "mid": T("由報價 mid 聚合")}[bars["source"]]
-        self.note.setText(self.head(sym, iid, "%s · %s · %d %s" % (fmt_iv(ivs), src, len(x), T("根"))))
+            vol.setLabel("left", T("Orders") if bars.get("v_is_count") else T("Volume"))
+        src = {"bars": T("Native Bars"), "trades": T("Aggregated from Trades"),
+               "mid": T("Aggregated from Quote Mid")}[bars["source"]]
+        self.note.setText(self.head(sym, iid, "%s · %s · %d %s" % (fmt_iv(ivs), src, len(x), T("bars"))))
         cvd_all = np.cumsum(bars["buy"] - bars["sell"]) if has_flow else None
         ind_values = self.draw_indicators(bars, x, self.subs[base_rows:])
-        vol_word = T("筆數") if bars.get("v_is_count") else T("成交量")
+        vol_word = T("Orders") if bars.get("v_is_count") else T("Volume")
 
         def ro(xv, yv):
             i = int(np.clip(np.searchsorted(bars["t"], xv, side="right") - 1, 0, len(x) - 1))
             s = "%s   %s %s   %s %s   %s %s   %s %s   %s %s" % (
-                self.ts(bars["t"][i]), T("開盤"), _p(bars["o"][i]), T("最高"), _p(bars["h"][i]), T("最低"),
-                _p(bars["l"][i]), T("收盤"), _p(bars["c"][i]), vol_word, _n(bars["v"][i]))
+                self.ts(bars["t"][i]), T("price|Open"), _p(bars["o"][i]), T("High"), _p(bars["h"][i]), T("Low"),
+                _p(bars["l"][i]), T("Close"), _p(bars["c"][i]), vol_word, _n(bars["v"][i]))
             if has_flow:
                 s += "   %s %s   %s %s   Delta %s   CVD %s" % (
-                    T("主動買量"), _n(bars["buy"][i]), T("主動賣量"), _n(bars["sell"][i]),
+                    T("Buy Volume"), _n(bars["buy"][i]), T("Sell Volume"), _n(bars["sell"][i]),
                     _n(bars["buy"][i] - bars["sell"][i]), _n(cvd_all[i]))
             if ind_values:
                 s += "\n" + "   ".join("%s %s" % (name, _p(round(vals[i], 4)) if np.isfinite(vals[i]) else "—")
@@ -464,7 +467,7 @@ class ChartPanel(QtWidgets.QWidget):
     # -- quotes --------------------------------------------------------------
     def draw_quotes(self, q, sym, iid):
         if q is None or len(q["t"]) == 0:
-            return self.empty(T("此商品沒有報價（bid/ask）欄位"))
+            return self.empty(T("This instrument has no quote (bid/ask) fields"))
         t = self.colors()
         self.new_layout(sub_rows=2)
         x = q["t"]
@@ -485,15 +488,16 @@ class ChartPanel(QtWidgets.QWidget):
         im.plot(xs, imb, stepMode="center", fillLevel=0, brush=pg.mkBrush(_alpha(t["accent"], 70)),
                 pen=pg.mkPen(t["accent"], width=1))
         im.setYRange(-1, 1)
-        im.setLabel("left", T("盤口失衡"))
-        self.note.setText(self.head(sym, iid, "%s %s · %s" % ("{:,}".format(q["n"]), T("筆報價"),
-                                                             T("上：bid/ask 與 spread 帶；中：spread；下：(bid量−ask量)/(bid量+ask量)"))))
+        im.setLabel("left", T("Top-of-Book Imbalance"))
+        self.note.setText(self.head(sym, iid, "%s %s · %s" % ("{:,}".format(q["n"]), T("quotes"),
+                                                             T("Top: bid/ask with spread band; middle: spread; "
+                                                               "bottom: (bid size−ask size)/(bid size+ask size)"))))
 
         def ro(xv, yv):
             i = int(np.clip(np.searchsorted(x, xv, side="right") - 1, 0, len(x) - 1))
             return "%s   Bid %s × %s   Ask %s × %s   Spread %s   %s %+.2f" % (
                 self.ts(x[i]), _p(q["bid"][i]), _n(q["bid_sz"][i]), _p(q["ask"][i]), _n(q["ask_sz"][i]),
-                _p(q["spread"][i]), T("失衡"), np.nan_to_num(q["imb"][i]))
+                _p(q["spread"][i]), T("Imbalance"), np.nan_to_num(q["imb"][i]))
         self.readout_fn = ro
         self.main.autoRange()
 
@@ -512,7 +516,8 @@ class ChartPanel(QtWidgets.QWidget):
     # -- order flow -----------------------------------------------------------
     def draw_flow(self, fl, sym, iid):
         if fl is None:
-            return self.empty(T("此商品沒有成交紀錄（需要 trades / tbbo / mbp / cmbp / mbo 等含成交的資料）"))
+            return self.empty(T("No trades for this instrument (needs data with trades, e.g. trades / tbbo / mbp / "
+                                "cmbp / mbo)"))
         t = self.colors()
         self.new_layout(sub_rows=2, profile=True)
         self.add_bubbles(self.main, fl["trades"])
@@ -524,20 +529,20 @@ class ChartPanel(QtWidgets.QWidget):
         sp = self.subs[0]
         sp.addItem(pg.BarGraphItem(x=x, height=fl["buy"], width=iv * 0.8, brush=t["bid"], pen=None))
         sp.addItem(pg.BarGraphItem(x=x, height=-fl["sell"], width=iv * 0.8, brush=t["ask"], pen=None))
-        sp.setLabel("left", T("買／賣量"))
+        sp.setLabel("left", T("Buy/Sell Volume"))
         self.subs[1].plot(fl["cvd_t"], fl["cvd"], pen=pg.mkPen(t["accent"], width=1.4))
         self.subs[1].setLabel("left", "CVD")
         tb, ts_ = fl["trades"]["t"], fl["trades"]
         self.note.setText(self.head(sym, iid, "%s %s · VWAP %s · %s" % (
-            "{:,}".format(fl["n"]), T("筆成交"), _p(fl["vwap"]),
-            T("泡泡大小＝成交量，綠＝主動買、紅＝主動賣；右側為價格成交量分布"))))
+            "{:,}".format(fl["n"]), T("trades"), _p(fl["vwap"]),
+            T("Bubble size ＝ volume, green ＝ aggressive buy, red ＝ aggressive sell; right: volume-at-price profile"))))
 
         def ro(xv, yv):
             if len(tb) == 0:
                 return ""
             i = int(np.clip(np.searchsorted(tb, xv), 0, len(tb) - 1))
             j = int(np.clip(np.searchsorted(fl["cvd_t"], xv, side="right") - 1, 0, len(fl["cvd"]) - 1))
-            return "%s   %s %s × %s   Side %s   CVD %s" % (self.ts(tb[i]), T("成交"), _p(ts_["price"][i]),
+            return "%s   %s %s × %s   Side %s   CVD %s" % (self.ts(tb[i]), T("Trade"), _p(ts_["price"][i]),
                                                      _n(ts_["size"][i]), ts_["side"][i].decode(), _n(fl["cvd"][j]))
         self.readout_fn = ro
         self.main.autoRange()
@@ -545,7 +550,7 @@ class ChartPanel(QtWidgets.QWidget):
     # -- heatmap --------------------------------------------------------------
     def draw_heatmap(self, hm, sym, iid):
         if hm is None:
-            return self.empty(T("此商品沒有盤口資料可畫熱圖"))
+            return self.empty(T("No book data for a heatmap for this instrument"))
         t = self.colors()
         self.new_layout(sub_rows=1)
         zb, za = np.log1p(hm["bid"]), np.log1p(hm["ask"])
@@ -569,17 +574,18 @@ class ChartPanel(QtWidgets.QWidget):
         sp = self.subs[0]
         sp.plot(ec, depth_b, pen=pg.mkPen(t["bid"], width=1.2))
         sp.plot(ec, depth_a, pen=pg.mkPen(t["ask"], width=1.2))
-        sp.setLabel("left", T("可見深度"))
-        how = T("由 MBO 重建（每格取樣）") if hm["cls"] == "MBOMsg" else T("取自盤口檔位")
+        sp.setLabel("left", T("Visible Depth"))
+        how = T("Rebuilt from MBO (Sampled per Cell)") if hm["cls"] == "MBOMsg" else T("From Book Levels")
         self.note.setText(self.head(sym, iid, "%s · tick %s · %s" % (
-            how, _p(hm["tick"]), T("綠＝買方掛單量、紅＝賣方掛單量（log 色階）；線＝最優買賣價；泡泡＝成交"))))
+            how, _p(hm["tick"]), T("Green ＝ resting bid size, red ＝ resting ask size (log color scale); lines ＝ "
+                                   "best bid/ask; bubbles ＝ trades"))))
 
         def ro(xv, yv):
             i = int(np.clip(np.searchsorted(hm["edges"], xv, side="right") - 1, 0, len(ec) - 1))
             k = int(np.clip(round((yv - hm["p0"]) / hm["tick"] - 0.5), 0, npb - 1))
             price = hm["p0"] + (k + 0.5) * hm["tick"]
             return "%s   %s %s   Bid %s   Ask %s   Best %s / %s" % (
-                self.ts(ec[i]), T("價格"), _p(price), _n(hm["bid"][i, k]), _n(hm["ask"][i, k]),
+                self.ts(ec[i]), T("Price"), _p(price), _n(hm["bid"][i, k]), _n(hm["ask"][i, k]),
                 _p(hm["best_bid"][i]), _p(hm["best_ask"][i]))
         self.readout_fn = ro
         self.main.autoRange()
@@ -588,7 +594,7 @@ class ChartPanel(QtWidgets.QWidget):
     def draw_line(self, r, sym, iid):
         names = list(r["series"])
         if not r["x"] or not names:
-            return self.empty(T("此商品在已載入的列中沒有價格資料"))
+            return self.empty(T("No price data for this instrument in the loaded rows"))
         t = self.colors()
         self.new_layout(sub_rows=1)
         self.main.addLegend(offset=(10, 10))
@@ -608,9 +614,9 @@ class ChartPanel(QtWidgets.QWidget):
             my = np.array([b for _, b in m], dtype=float)
             self.subs[0].plot(np.append(mx, mx[-1] + 60), my, stepMode="center", fillLevel=0,
                               brush=pg.mkBrush(_alpha(t["accent"], 70)), pen=pg.mkPen(t["accent"], width=1))
-            self.subs[0].setLabel("left", T("筆數/分"))
-        self.note.setText(self.head(sym, iid, "%s %s%s" % ("{:,}".format(r["n"]), T("筆"),
-                                                          T("（min/max 降採樣）") if r.get("downsampled") else "")))
+            self.subs[0].setLabel("left", T("Records/Min"))
+        self.note.setText(self.head(sym, iid, "%s %s%s" % ("{:,}".format(r["n"]), T("rows"),
+                                                          T(" (min/max downsampled)") if r.get("downsampled") else "")))
 
         def ro(xv, yv):
             i = int(np.clip(np.searchsorted(x, xv), 0, len(x) - 1))

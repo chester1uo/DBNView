@@ -125,7 +125,7 @@ def main(argv=None):
     splash = Splash()
     splash.show()
     app.processEvents()
-    splash.message(T("正在載入圖表與分析模組…"))
+    splash.message(T("Loading charts and analysis modules…"))
     from .main_window import MainWindow  # the heavy imports (pyqtgraph, OpenGL) happen here
     note("imported main window")
     win = MainWindow()
@@ -134,7 +134,7 @@ def main(argv=None):
         from .gestures import opengl_status
         note("3D view: %s, %s" % opengl_status())
     app.win = win
-    splash.message(T("準備就緒"))
+    splash.message(T("Ready"))
     while time.time() - shown < 1.2 and not os.environ.get("DBNVIEW_SELFTEST"):  # keep it readable
         app.processEvents()
         time.sleep(0.02)

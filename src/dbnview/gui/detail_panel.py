@@ -17,12 +17,13 @@ class DetailPanel(QtWidgets.QWidget):
         self.book_html = ""
         lay = QtWidgets.QVBoxLayout(self)
         lay.setContentsMargins(6, 8, 10, 8)
-        self.title = QtWidgets.QLabel(T("<b>明細</b>"))
-        self.book_btn = QtWidgets.QPushButton(T("重建此刻的訂單簿（MBO）"))
+        self.title = QtWidgets.QLabel(T("<b>Details</b>"))
+        self.book_btn = QtWidgets.QPushButton(T("Rebuild Order Book Here (MBO)"))
         self.book_btn.clicked.connect(self.load_book)
         self.book_btn.hide()
         self.view = QtWidgets.QTextBrowser()
-        self.view.setPlaceholderText(T("點表格任一列，查看全部欄位、買賣盤與原始位元組。"))
+        self.view.setPlaceholderText(T("Click any row in the table to see all fields, the bid/ask book, and raw "
+                                       "bytes."))
         lay.addWidget(self.title)
         lay.addWidget(self.book_btn)
         lay.addWidget(self.view, 1)
@@ -47,7 +48,7 @@ class DetailPanel(QtWidgets.QWidget):
         self.row = r
         self.book_html = ""
         self.book_btn.setVisible("order_id" in o and self.model.kinds.get("action") == "chr")
-        self.title.setText(T("<b>第 %s 列</b> <span style='color:gray'>· 檔案內第 %s 筆</span>")
+        self.title.setText(T("<b>Row %s</b> <span style='color:gray'>· record %s in file</span>")
                            % (fmt_n(r), fmt_n(o.get("_rec"))))
         self.render()
 
@@ -65,8 +66,8 @@ class DetailPanel(QtWidgets.QWidget):
             return ("<tr><td align=right style='color:%s'>%s</td><td align=right>%s</td><td>%s</td>%s</tr>"
                     % (col, fmt_px(lv[0]), fmt_n(lv[1]), bar(lv[1], col), ct))
 
-        h = (T("<table cellspacing=0 cellpadding=2 style='font-family:Menlo;font-size:11px'><tr style='color:%s'>"
-               "<th align=right>價格</th><th align=right>數量</th><th></th>%s</tr>")
+        h = (T("<table cellspacing=0 cellpadding=2 style='font-family:Menlo;font-size:11px'><tr "
+               "style='color:%s'><th align=right>Price</th><th align=right>Size</th><th></th>%s</tr>")
              % (t["muted"], "" if ct_label is None else "<th align=right>%s</th>" % ct_label)).replace(
             "font-family:Menlo", MONO_CSS)
         h += "".join(row(a, t["ask"]) for a in reversed(asks))
@@ -85,7 +86,7 @@ class DetailPanel(QtWidgets.QWidget):
                 break
             c = "ct" if "bid_ct_" + k in o else ("pb" if "bid_pb_" + k in o else None)
             if c:
-                ct = T("筆數") if c == "ct" else T("交易所")
+                ct = T("Orders") if c == "ct" else T("Venue")
             pv = (lambda x: PUBLISHERS.get(x, str(x)).split(".")[-1]) if c == "pb" else (lambda x: x)
             if o["bid_px_" + k] is not None:
                 bids.append((o["bid_px_" + k], o["bid_sz_" + k], pv(o["bid_%s_%s" % (c, k)]) if c else None))
@@ -95,7 +96,7 @@ class DetailPanel(QtWidgets.QWidget):
 
     def fields_html(self, o):
         t, ts = self.win.colors, self.win.tsfmt
-        h = T("<h4>欄位</h4><table cellspacing=0 cellpadding=2 width=100%>")
+        h = T("<h4>Fields</h4><table cellspacing=0 cellpadding=2 width=100%>")
         for c in self.model.allcols:
             v = o.get(c)
             k = self.model.kinds.get(c)
@@ -125,9 +126,9 @@ class DetailPanel(QtWidgets.QWidget):
         lay, hx = raw["layout"], raw["hex"]
         owner = {b: i for i, f in enumerate(lay) for b in range(f[1], f[1] + f[2])}
         n = len(hx) // 2
-        h = (T("<h4>原始位元組（%s · rtype 0x%02x · %d bytes · little-endian）</h4>"
-               "<p style='color:%s'>同一欄位同一顏色；下表列出每個欄位的 offset、型別與原始整數值。</p>"
-               "<pre style='font-family:Menlo;font-size:11px'>")
+        h = (T("<h4>Raw Bytes (%s · rtype 0x%02x · %d bytes · little-endian)</h4><p style='color:%s'>Each "
+               "field has its own color; the table below lists each field's offset, type, and raw integer "
+               "value.</p><pre style='font-family:Menlo;font-size:11px'>")
              % (esc(raw["cls"]), raw["rtype"], n, t["muted"])).replace("font-family:Menlo", MONO_CSS)
         for off in range(0, n, 16):
             h += "<span style='color:%s'>%04x</span>  " % (t["faint"], off)
@@ -137,8 +138,8 @@ class DetailPanel(QtWidgets.QWidget):
                 h += "<span style='background-color:%s'>%s</span>%s" % (bg, hx[b * 2:b * 2 + 2], " " if b % 16 != 15 else "")
             h += "\n"
         h += "</pre><table cellspacing=0 cellpadding=2 style='font-size:11px'>"
-        h += T("<tr style='color:%s'><th align=left>offset</th><th align=left>欄位</th><th align=left>型別</th>"
-               "<th align=left>原始值</th></tr>") % t["muted"]
+        h += T("<tr style='color:%s'><th align=left>Offset</th><th align=left>Field</th><th "
+               "align=left>Type</th><th align=left>Raw Value</th></tr>") % t["muted"]
         for i, f in enumerate(lay):
             h += ("<tr><td style='{m}'>%d<span style='color:%s'>+%d</span></td>"
                   "<td style='{m};background-color:%s'>%s</td><td style='{m};color:%s'>%s</td>"
@@ -154,7 +155,7 @@ class DetailPanel(QtWidgets.QWidget):
         h = ""
         bids, asks, ct = self.levels_from_row(o)
         if "bid_px_00" in o:
-            h += T("<h4>買賣盤（此筆之後）</h4>") + self.ladder_html(bids, asks, ct)
+            h += T("<h4>Bid/Ask (After This Record)</h4>") + self.ladder_html(bids, asks, ct)
         h += self.book_html + self.fields_html(o)
         try:
             h += self.raw_html(self.win.job.raw(self.row))
@@ -170,24 +171,27 @@ class DetailPanel(QtWidgets.QWidget):
         if r is None or job is None:
             return
         self.book_btn.setEnabled(False)
-        self.book_btn.setText(T("重建中…"))
+        self.book_btn.setText(T("Rebuilding…"))
 
         def reset_button():
             self.book_btn.setEnabled(True)
-            self.book_btn.setText(T("重建此刻的訂單簿（MBO）"))
+            self.book_btn.setText(T("Rebuild Order Book Here (MBO)"))
 
         def done(b):
             reset_button()
             if r != self.row:
                 return
             t = self.win.colors
-            h = T("<h4>訂單簿（MBO 重建）</h4><p style='color:%s'>%s · 套用 %s 筆 MBO · %s 張掛單</p>") % (
+            h = T("<h4>Order Book (MBO Rebuild)</h4><p style='color:%s'>%s · applied %s MBO records · %s resting "
+                  "orders</p>") % (
                 t["muted"], esc(b["symbol"] or str(b["instrument_id"])), fmt_n(b["applied"]), fmt_n(b["orders"]))
             if not b["safe"]:
-                h += T("<p style='color:%s'>目前篩選可能漏掉此商品較早的訊息（時間/action/side/where），簿可能不正確。</p>") % t["warn"]
+                h += T("<p style='color:%s'>The current filter may have dropped earlier messages for this "
+                       "instrument (time/action/side/where); the book may be inaccurate.</p>") % t["warn"]
             if not b["had_clear"]:
-                h += T("<p style='color:%s'>檔案開頭沒有清簿 (R)／快照，開始前已存在的掛單不在簿中。</p>") % t["warn"]
-            self.book_html = h + self.ladder_html(b["bids"], b["asks"], T("掛單數"))
+                h += T("<p style='color:%s'>The file does not start with a book clear (R) / snapshot; orders "
+                       "resting before the start are missing from the book.</p>") % t["warn"]
+            self.book_html = h + self.ladder_html(b["bids"], b["asks"], T("book|Orders"))
             self.render()
 
         def fail(e):

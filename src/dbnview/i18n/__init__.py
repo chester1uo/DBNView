@@ -1,8 +1,9 @@
 """UI string translation.
 
-`T(key)` returns the text for the current language. Keys are the original source strings (mostly zh-Hant);
-all translations live in `strings.py` as {key: {lang: text}}. When adding a UI string, wrap it in T(...) and add
-an entry with all 7 languages — tests/test_i18n.py fails otherwise.
+`T(key)` returns the text for the current language. Keys are the English text; translations live in `strings.py`
+as {key: {lang: text}}. A key "context|Text" separates words that read the same in English but translate
+differently ("price|Open" vs "Open"); English shows "Text". When adding a UI string, wrap it in T(...) and add an
+entry with the 6 other languages — tests/test_i18n.py fails otherwise.
 """
 import locale
 import os
@@ -46,7 +47,5 @@ def get_lang():
 
 
 def T(key):
-    d = STRINGS.get(key)
-    if not d:
-        return key
-    return d.get(_lang) or d.get("en") or key
+    d = STRINGS.get(key) or {}
+    return d.get(_lang) or d.get("en") or key.rpartition("|")[2]

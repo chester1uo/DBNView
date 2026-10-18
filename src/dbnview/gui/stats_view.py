@@ -38,26 +38,30 @@ class StatsView(QtWidgets.QTextBrowser):
 
     def render(self, st, s):
         if not st or not s:
-            self.setHtml(T("<p style='color:gray'>尚無統計</p>"))
+            self.setHtml(T("<p style='color:gray'>No statistics yet</p>"))
             return
         t, ts = self.win.colors, self.win.tsfmt
         span = "%s<br>%s" % (ts.fmt(st["tmin"], "dt"), ts.fmt(st["tmax"], "dt")) if st["tmin"] else "—"
-        partial = T("（掃描中）") if not st["done"] else (T("（僅涵蓋已掃描部分）") if st["truncated"] else "")
+        partial = T("(scanning)") if not st["done"] else (T("(scanned part only)") if st["truncated"] else "")
         tile = lambda label, val: ("<td style='padding:8px 18px 8px 0' valign=top><span style='color:%s'>%s</span><br>"
                                    "<span style='font-size:20px;font-weight:600'>%s</span></td>") % (t["muted"], label, val)
         h = "<table><tr>%s%s%s%s</tr></table>" % (
-            tile(T("符合篩選 ") + partial, fmt_n(st["matched"])), tile(T("已讀紀錄"), fmt_n(st["seen"])),
-            tile(T("商品數"), fmt_n(s["n_instruments"])),
-            T("<td valign=top><span style='color:%s'>時間範圍 (%s)</span><br><span style='font-family:Menlo'>%s</span></td>")
+            tile(T("Matching Filter ") + partial, fmt_n(st["matched"])), tile(T("Records Read"), fmt_n(st["seen"])),
+            tile(T("Instruments"), fmt_n(s["n_instruments"])),
+            T("<td valign=top><span style='color:%s'>Time range (%s)</span><br><span "
+              "style='font-family:Menlo'>%s</span></td>")
             .replace("font-family:Menlo", MONO_CSS) % (t["muted"], ts.tz_short, span))
         h += ("<table width=100%%><tr><td valign=top><h3>%s</h3>%s</td><td valign=top><h3>%s</h3>%s</td>"
               "<td valign=top><h3>%s</h3>%s</td></tr></table>") % (
-            T("紀錄類型"), self.hbars(s["rtype"]), T("動作"), self.hbars(s["action"]), T("方向"), self.hbars(s["side"]))
-        h += T("<h3>前 %d 個商品（依筆數）</h3><table cellspacing=0 cellpadding=3 width=100%%>") % len(s["top"])
-        h += T("<tr style='color:%s'><th align=left>symbol</th><th align=left>instrument_id</th><th align=right>筆數</th>"
-               "<th align=right>占比</th><th></th></tr>") % t["muted"]
-        row = T("<tr><td style='font-family:Menlo'>%s</td><td style='font-family:Menlo'>%d</td><td align=right>%s</td>"
-                "<td align=right>%.2f%%</td><td><a href='filter:%d'>篩選</a>  <a href='chart:%d'>圖表</a></td></tr>"
+            T("Record Type"), self.hbars(s["rtype"]), T("Action"), self.hbars(s["action"]),
+            T("Side"), self.hbars(s["side"]))
+        h += T("<h3>Top %d Instruments (by Record Count)</h3>") % len(s["top"])
+        h += "<table cellspacing=0 cellpadding=3 width=100%>"
+        h += T("<tr style='color:%s'><th align=left>Symbol</th><th align=left>Instrument ID</th><th "
+               "align=right>Records</th><th align=right>Share</th><th></th></tr>") % t["muted"]
+        row = T("<tr><td style='font-family:Menlo'>%s</td><td style='font-family:Menlo'>%d</td><td "
+                "align=right>%s</td><td align=right>%.2f%%</td><td><a href='filter:%d'>Filter</a>  <a "
+                "href='chart:%d'>Chart</a></td></tr>"
                 ).replace("font-family:Menlo", MONO_CSS)
         for iid, c, sym in s["top"]:
             h += row % (esc((sym or "—").replace(" ", " ")), iid, fmt_n(c), 100 * c / max(1, st["matched"]), iid, iid)

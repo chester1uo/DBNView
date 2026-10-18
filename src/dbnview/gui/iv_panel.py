@@ -19,8 +19,8 @@ try:
 except Exception:  # noqa: BLE001
     HAVE_GL = False
 
-XAXES = [("k", "log-moneyness ln(K/F)"), ("K", "履約價 K"), ("delta", "call delta")]
-SIDES = [("otm", "價外 (OTM)"), ("call", "Call"), ("put", "Put"), ("both", "Call + Put")]
+XAXES = [("k", "Log-Moneyness ln(K/F)"), ("K", "Strike K"), ("delta", "Call Delta")]
+SIDES = [("otm", "Out-of-the-Money (OTM)"), ("call", "Call"), ("put", "Put"), ("both", "Call + Put")]
 PALETTE = ["#5b9dff", "#3ccf8e", "#e3b341", "#ff6b6b", "#b48cff", "#4fc1c9", "#f08bd0", "#9aa4b1",
            "#ff9f43", "#26de81", "#a55eea", "#45aaf2"]
 
@@ -54,7 +54,7 @@ class IVPanel(QtWidgets.QWidget):
         self.slider.valueChanged.connect(self.on_slider)
         self.slider.sliderReleased.connect(self.compute)
         self.spot = QtWidgets.QLineEdit()
-        self.spot.setPlaceholderText(T("自動（parity）"))
+        self.spot.setPlaceholderText(T("Auto (Parity)"))
         self.spot.setMaximumWidth(110)
         self.rate = QtWidgets.QDoubleSpinBox()
         self.rate.setRange(-5, 20)
@@ -78,31 +78,33 @@ class IVPanel(QtWidgets.QWidget):
         self.maxage = QtWidgets.QSpinBox()
         self.maxage.setRange(0, 100000)
         self.maxage.setValue(30)
-        self.maxage.setSuffix(T(" 分"))
-        self.maxage.setSpecialValueText(T("不限"))
-        self.maxage.setToolTip(T("只用這段時間內有更新的報價（0 = 不限）"))
-        self.mindays.setSuffix(T(" 天"))
-        go = QtWidgets.QPushButton(T("計算"))
+        self.maxage.setSuffix(T(" min"))
+        self.maxage.setSpecialValueText(T("No Limit"))
+        self.maxage.setToolTip(T("Only use quotes updated within this time (0 = no limit)"))
+        self.mindays.setSuffix(T(" days"))
+        go = QtWidgets.QPushButton(T("Compute"))
         go.clicked.connect(self.compute)
-        exp_btn = QtWidgets.QPushButton(T("匯出 CSV…"))
+        exp_btn = QtWidgets.QPushButton(T("Export CSV…"))
         exp_btn.clicked.connect(self.export)
         # two rows so nothing overlaps in a narrow window
         bar2 = QtWidgets.QHBoxLayout()
-        for label, w in ((T("標的"), self.root), (T("時間"), self.time_edit)):
+        for label, w in ((T("Underlying"), self.root), (T("Time"), self.time_edit)):
             bar.addWidget(QtWidgets.QLabel(label))
             bar.addWidget(w)
         bar.addWidget(self.slider, 1)
         bar.addWidget(go)
         bar.addWidget(exp_btn)
-        for label, w in ((T("標的價"), self.spot), ("r", self.rate), (T("選擇權"), self.side), (T("X 軸"), self.xaxis),
-                         (T("最大價差"), self.maxspread), (T("最短到期"), self.mindays),
-                         (T("報價年齡上限"), self.maxage)):
+        for label, w in ((T("Underlying Price"), self.spot), ("r", self.rate), (T("Options"), self.side),
+                         (T("X Axis"), self.xaxis),
+                         (T("Max Spread"), self.maxspread), (T("Min Expiry"), self.mindays),
+                         (T("Max Quote Age"), self.maxage)):
             bar2.addWidget(QtWidgets.QLabel(label))
             bar2.addWidget(w)
         bar2.addStretch()
         lay.addLayout(bar)
         lay.addLayout(bar2)
-        self.note = QtWidgets.QLabel(T("開啟含期權報價的檔案（例如 OPRA cbbo-1m / cmbp-1 / tcbbo / trades / ohlcv）後按「計算」。"))
+        self.note = QtWidgets.QLabel(T("Open a file with option quotes (e.g. OPRA cbbo-1m / cmbp-1 / tcbbo / trades "
+                                       "/ ohlcv), then press “Compute”."))
         self.note.setStyleSheet("color:gray")
         self.note.setWordWrap(True)
         lay.addWidget(self.note)
@@ -119,32 +121,34 @@ class IVPanel(QtWidgets.QWidget):
             bl.setContentsMargins(0, 0, 0, 0)
             cam = QtWidgets.QHBoxLayout()
             for text, fn in (("＋", lambda: self.gl.zoom(0.8)), ("－", lambda: self.gl.zoom(1.25)),
-                             (T("俯視"), lambda: self.gl.preset("top")), (T("正視"), lambda: self.gl.preset("front")),
-                             (T("側視"), lambda: self.gl.preset("side")), (T("重設視角"), self.reset_camera)):
+                             (T("Top"), lambda: self.gl.preset("top")), (T("Front"), lambda: self.gl.preset("front")),
+                             (T("view|Side"), lambda: self.gl.preset("side")), (T("Reset View"), self.reset_camera)):
                 b = QtWidgets.QPushButton(text)
                 b.setAutoDefault(False)
                 b.clicked.connect(fn)
                 cam.addWidget(b)
-            hint = QtWidgets.QLabel(native_shortcuts(T("拖曳旋轉 · 滾輪或雙指捏合縮放 · 中鍵或 ⌘+拖曳平移")))
+            hint = QtWidgets.QLabel(native_shortcuts(T("Drag to rotate · scroll or pinch to zoom · middle-drag or "
+                                                       "⌘+drag to pan")))
             hint.setStyleSheet("color:gray")
             cam.addWidget(hint)
             cam.addStretch()
             bl.addLayout(cam)
             bl.addWidget(self.gl, 1)
-            self.views.addTab(box, T("3D 曲面"))
+            self.views.addTab(box, T("3D Surface"))
         else:
             self.gl = None
         self.heat = pg.PlotWidget()
-        self.heat.setLabel("left", T("到期（天）"))
+        self.heat.setLabel("left", T("Expiry (days)"))
         self.heat_img = None
         self.heat.scene().sigMouseClicked.connect(self.on_heat_click)
-        self.views.addTab(self.heat, T("熱圖（點選截面）"))
+        self.views.addTab(self.heat, T("Heatmap (Click to Pick a Slice)"))
         if self.gl is None and gl_desc:  # after the heatmap (the default view): say why there is no 3D view
-            msg = QtWidgets.QLabel(T("這台電腦的 OpenGL 不支援 3D 檢視（%s），請改用熱圖與截面圖。") % gl_desc)
+            msg = QtWidgets.QLabel(T("OpenGL on this computer cannot show the 3D view (%s). Use the heatmap and "
+                                     "slice charts instead.") % gl_desc)
             msg.setWordWrap(True)
             msg.setAlignment(Qt.AlignCenter)
             msg.setStyleSheet("color:gray; padding:24px")
-            self.views.addTab(msg, T("3D 曲面"))
+            self.views.addTab(msg, T("3D Surface"))
         split.addWidget(self.views)
 
         right = QtWidgets.QSplitter(Qt.Vertical)
@@ -162,7 +166,7 @@ class IVPanel(QtWidgets.QWidget):
             for a_ in ("left", "bottom"):
                 w_.getAxis(a_).enableAutoSIPrefix(False)
         el = QtWidgets.QVBoxLayout()
-        el.addWidget(QtWidgets.QLabel(T("到期日（勾選＝smile 截面）")))
+        el.addWidget(QtWidgets.QLabel(T("Expiries (Checked = Smile Slice)")))
         el.addWidget(self.exp_list, 1)
         sl.addLayout(el)
         sl.addWidget(self.smile, 1)
@@ -181,7 +185,7 @@ class IVPanel(QtWidgets.QWidget):
         tl.addLayout(tbar)
         self.term = pg.PlotWidget()
         self.term.setLabel("left", "IV")
-        self.term.setLabel("bottom", T("到期（天）"))
+        self.term.setLabel("bottom", T("Expiry (days)"))
         self.term.showGrid(x=True, y=True, alpha=0.15)
         for a_ in ("left", "bottom"):
             self.term.getAxis(a_).enableAutoSIPrefix(False)
@@ -218,7 +222,8 @@ class IVPanel(QtWidgets.QWidget):
         job = self.win.job
         self.reset()
         if job is None or not options.is_option_data(job):
-            self.note.setText(T("這個檔案看起來不是期權資料（找不到 OSI 期權代碼，例如 SPY   260116C00690000）。"))
+            self.note.setText(T("This file doesn't look like options data (no OSI option symbols found, e.g. SPY   "
+                                "260116C00690000)."))
             return False
         self.ch = options.chain(job)
         for r in options.roots(self.ch):
@@ -230,7 +235,8 @@ class IVPanel(QtWidgets.QWidget):
         self.slider.setValue(1000)
         self.slider.blockSignals(False)
         self.on_slider(1000)
-        self.note.setText(T("偵測到 %d 個期權合約、%d 個標的。按「計算」產生曲面。") % (len(self.ch), self.root.count()))
+        self.note.setText(T("Found %d option contracts, %d underlyings. Press “Compute” to build the surface.")
+                          % (len(self.ch), self.root.count()))
         return True
 
     def on_slider(self, v):
@@ -241,8 +247,8 @@ class IVPanel(QtWidgets.QWidget):
 
     def update_term_label(self):
         x = self.xaxis.currentData()
-        self.term_label.setText({"k": T("期限結構：固定 ln(K/F) ="), "K": T("期限結構：固定履約價 K ="),
-                                 "delta": T("期限結構：固定 call delta =")}[x])
+        self.term_label.setText({"k": T("Term Structure: Fixed ln(K/F) ="), "K": T("Term Structure: Fixed Strike K ="),
+                                 "delta": T("Term Structure: Fixed Call Delta =")}[x])
 
     # ---- compute ------------------------------------------------------------
     def compute(self):
@@ -253,13 +259,13 @@ class IVPanel(QtWidgets.QWidget):
             t_ns = parse_time(self.time_edit.text(), self.win.tsfmt.tz, self.t_lo) if self.time_edit.text().strip() \
                 else self.t_hi
         except Exception as e:  # noqa: BLE001
-            self.note.setText(T("時間格式錯誤：%s") % e)
+            self.note.setText(T("Invalid time format: %s") % e)
             return
         spot = float(self.spot.text()) if self.spot.text().strip() else None
         args = dict(root=self.root.currentText(), r=self.rate.value() / 100.0, spot=spot, side=self.side.currentData(),
                     max_spread=self.maxspread.value() / 100.0, min_days=self.mindays.value(), ch=self.ch,
                     max_age_s=self.maxage.value() * 60 or None)
-        self.note.setText(T("計算中…"))
+        self.note.setText(T("Computing…"))
         self._prog = [0, 1]
         args["progress"] = lambda done, tot: self._prog.__setitem__(slice(0, 2), [done, tot])
         token = object()
@@ -267,7 +273,8 @@ class IVPanel(QtWidgets.QWidget):
         args["cancel"] = lambda: self._token is not token
         timer = QtCore.QTimer(self)
         timer.setInterval(300)
-        timer.timeout.connect(lambda: self.note.setText(T("已載入的列不涵蓋這個時間點，正從檔案開頭串流到該時間… %.0f%%")
+        timer.timeout.connect(lambda: self.note.setText(T("Loaded rows don't cover this time; streaming from the "
+                                                          "start of the file… %.0f%%")
                                                        % (100.0 * self._prog[0] / max(self._prog[1], 1))) if self._prog[0] else None)
         timer.start()
 
@@ -276,16 +283,18 @@ class IVPanel(QtWidgets.QWidget):
             if token is not self._token:
                 return
             if s is None or len(s["iv"]) == 0:
-                self.note.setText(T("這個時間點沒有可用的期權報價（試試較晚的時間，或放寬價差 / 到期條件）。"))
+                self.note.setText(T("No usable option quotes at this time (try a later time, or relax the spread / "
+                                    "expiry limits)."))
                 return
             self.s = s
             self.fill_exp_list()
             self.redraw()
             fw = s["forwards"]
             age = np.nanmedian(s["age_s"]) if len(s["age_s"]) else 0
-            self.note.setText(T("%s @ %s %s · %d 個 IV 點（%d 檔報價）· %d 個到期日 · forward 由 put-call parity 推得 · 報價中位數年齡 %.0f 秒%s") % (
+            self.note.setText(T("%s @ %s %s · %d IV points (%d quotes) · %d expiries · forward from put-call parity "
+                                "· median quote age %.0f s%s") % (
                 s["root"], self.win.tsfmt.fmt(s["t_ns"], "dt")[:19], self.win.tsfmt.tz_short, len(s["iv"]), s["n_quotes"],
-                len(fw), age, T("（從檔案串流取得）") if s.get("streamed") else ""))
+                len(fw), age, T(" (streamed from file)") if s.get("streamed") else ""))
 
         def fail(e):
             timer.stop()
@@ -351,7 +360,7 @@ class IVPanel(QtWidgets.QWidget):
         ax.setTicks([[(j + 0.5, "%s %.0fd" % (dt.date.fromordinal(int(e)).strftime("%m-%d"), d))
                       for j, (e, d) in enumerate(zip(g["exps"], g["days"])) if j % step == 0]])
         p.setLabel("bottom", self.xlabel())
-        p.setTitle(T("IV 熱圖（%.1f%% – %.1f%%），點一下選定截面") % (lo * 100, hi * 100))
+        p.setTitle(T("IV heatmap (%.1f%% – %.1f%%), click to pick a slice") % (lo * 100, hi * 100))
         p.autoRange()
         self.heat_img = img
 
@@ -426,7 +435,7 @@ class IVPanel(QtWidgets.QWidget):
         step = max(1, len(exps) // 5)
         for j in range(0, len(exps), step):
             lab((11, Y[j], 0), "%.0fd" % days[j])
-        lab((12.5, 0, 0), T("到期"))
+        lab((12.5, 0, 0), T("Expiry"))
         for f in (0, 0.5, 1):
             lab((-11, 11, 10 * f), "%.1f%%" % ((lo + (hi - lo) * f) * 100))
         lab((-11, 11, 11.5), "IV")
@@ -471,7 +480,7 @@ class IVPanel(QtWidgets.QWidget):
         if self.xaxis.currentData() == "k":
             p.addItem(pg.InfiniteLine(pos=0, angle=90, pen=pg.mkPen(self.win.colors["muted"], style=Qt.DashLine)))
         p.setLabel("bottom", self.xlabel())
-        p.setTitle(T("Smile 截面（○ call、△ put；直線為 bid/ask IV 區間）"))
+        p.setTitle(T("Smile slice (○ call, △ put; vertical lines = bid/ask IV range)"))
 
     def draw_term(self):
         p = self.term
@@ -485,17 +494,17 @@ class IVPanel(QtWidgets.QWidget):
             return
         d, iv, _ = options.term_at(s, self.xaxis.currentData(), v)
         if len(d) == 0:
-            p.setTitle(T("此位置沒有足夠資料"))
+            p.setTitle(T("Not enough data here"))
             return
         col = self.win.colors["accent"]
         p.plot(d, iv, pen=pg.mkPen(col, width=1.8), symbol="o", symbolSize=6, symbolBrush=col, symbolPen=None)
-        p.setTitle(T("期限結構 @ %s = %s") % (self.xlabel(), self.term_x.text()))
+        p.setTitle(T("Term structure @ %s = %s") % (self.xlabel(), self.term_x.text()))
 
     def export(self):
         s = self.s
         if s is None:
             return
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, T("匯出 CSV…"), "iv_%s.csv" % s["root"], "CSV (*.csv)")
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, T("Export CSV…"), "iv_%s.csv" % s["root"], "CSV (*.csv)")
         if not path:
             return
         cols = ["sym", "iid", "exp", "days", "cp", "K", "F", "k", "delta", "bid", "ask", "mid", "iv", "iv_bid", "iv_ask", "age_s"]
@@ -514,7 +523,7 @@ class IVPanel(QtWidgets.QWidget):
                         v = v.item()
                     row.append(v)
                 w.writerow(row)
-        self.note.setText(T("已匯出 %d 列 → %s") % (len(s["iv"]), path))
+        self.note.setText(T("Exported %d rows → %s") % (len(s["iv"]), path))
 
 
 def _alpha(hex_color, a):

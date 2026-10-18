@@ -29,7 +29,7 @@ class TablePanel(QtWidgets.QWidget):
         bar = QtWidgets.QHBoxLayout()
         bar.setContentsMargins(6, 0, 6, 0)
         self.seek_edit = QtWidgets.QLineEdit()
-        self.seek_edit.setPlaceholderText(T("跳到時間，例如 15:45"))
+        self.seek_edit.setPlaceholderText(T("Jump to time, e.g. 15:45"))
         self.seek_edit.setMaximumWidth(240)
         self.seek_edit.returnPressed.connect(self.seek)
         self.rows_label = QtWidgets.QLabel("")
@@ -94,7 +94,7 @@ class TablePanel(QtWidgets.QWidget):
         if self.model.set_columns(st["columns"], st["kinds"], self.hidden):
             self.apply_col_widths()
         self.model.set_rows(st["rows"])
-        self.rows_label.setText(T("%s 列%s") % (fmt_n(st["rows"]), "" if st["done"] else T(" · 掃描中…")))
+        self.rows_label.setText(T("%s rows%s") % (fmt_n(st["rows"]), "" if st["done"] else T(" · scanning…")))
 
     def refresh(self):
         """Re-render after a time-zone / format change."""
@@ -131,8 +131,8 @@ class TablePanel(QtWidgets.QWidget):
     def fill_col_menu(self, menu=None, popup=None):
         menu = menu if menu is not None else QtWidgets.QMenu(self)
         menu.clear()
-        menu.addAction(T("全部顯示")).triggered.connect(lambda: self.set_hidden(set()))
-        menu.addAction(T("精簡（隱藏 rtype、publisher、sequence…）")).triggered.connect(
+        menu.addAction(T("Show All")).triggered.connect(lambda: self.set_hidden(set()))
+        menu.addAction(T("Compact (hide rtype, publisher, sequence…)")).triggered.connect(
             lambda: self.set_hidden(self.hidden | COMPACT_HIDE))
         menu.addSeparator()
         for c in self.model.allcols:
@@ -161,7 +161,7 @@ class TablePanel(QtWidgets.QWidget):
         try:
             ns = parse_time(self.seek_edit.text(), self.win.tsfmt.tz, job.tmin or self.win.fi.md["start"])
         except Exception as e:  # noqa: BLE001
-            self.win.show_error(T("時間格式錯誤：%s") % e)
+            self.win.show_error(T("Invalid time format: %s") % e)
             return
         r = min(job.seek(ns), self.model.n - 1)
         if r >= 0:
@@ -175,7 +175,7 @@ class TablePanel(QtWidgets.QWidget):
             return
         base = display_name(self.win.fi.path).replace(".dbn.zst", "").replace(".dbn", "")
         start = self.win.settings.value("lastdir", os.path.expanduser("~"))
-        p, _ = QtWidgets.QFileDialog.getSaveFileName(self, T("匯出 CSV"), os.path.join(start, base + ".csv"),
+        p, _ = QtWidgets.QFileDialog.getSaveFileName(self, T("Export CSV"), os.path.join(start, base + ".csv"),
                                                      "CSV (*.csv)")
         if not p:
             return
@@ -193,5 +193,6 @@ class TablePanel(QtWidgets.QWidget):
             return job.n
 
         sb = self.win.statusBar()
-        sb.showMessage(T("匯出中… %s") % p)
-        run_bg(work, done=lambda n: sb.showMessage(T("已匯出 %s 列 → %s") % (fmt_n(n), p)), fail=self.win.show_error)
+        sb.showMessage(T("Exporting… %s") % p)
+        run_bg(work, done=lambda n: sb.showMessage(T("Exported %s rows → %s") % (fmt_n(n), p)),
+               fail=self.win.show_error)

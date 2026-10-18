@@ -35,22 +35,22 @@ class FilterPanel(QtWidgets.QScrollArea):
 
     # ---- construction -------------------------------------------------------
     def _build_info(self):
-        self.info = QtWidgets.QLabel(T("尚未開啟檔案"))
+        self.info = QtWidgets.QLabel(T("No File Open"))
         self.info.setWordWrap(True)
         self.info.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.info.setAlignment(Qt.AlignTop | Qt.AlignLeft)
-        box = QtWidgets.QGroupBox(T("檔案"))
+        box = QtWidgets.QGroupBox(T("File"))
         QtWidgets.QVBoxLayout(box).addWidget(self.info)
         return box
 
     def _build_filters(self):
         mono = self.win.mono
-        fb = QtWidgets.QGroupBox(T("篩選"))
+        fb = QtWidgets.QGroupBox(T("Filter"))
         form = QtWidgets.QFormLayout(fb)
         form.setFieldGrowthPolicy(QtWidgets.QFormLayout.AllNonFixedFieldsGrow)
 
         self.sym_edit = QtWidgets.QLineEdit()
-        self.sym_edit.setPlaceholderText(T("輸入後 Enter：子字串；選建議：精確"))
+        self.sym_edit.setPlaceholderText(T("Type + Enter: substring; pick a suggestion: exact"))
         self.sym_edit.setFont(mono)
         self.sym_model = QtCore.QStringListModel()
         self.completer = QtWidgets.QCompleter(self.sym_model, self)
@@ -63,7 +63,7 @@ class FilterPanel(QtWidgets.QScrollArea):
         self.sym_list = QtWidgets.QListWidget()
         self.sym_list.setMaximumHeight(64)
         self.sym_list.setFont(mono)
-        self.sym_list.setToolTip(T("雙擊或按 Delete 移除"))
+        self.sym_list.setToolTip(T("Double-click or press Delete to remove"))
         self.sym_list.itemDoubleClicked.connect(self.remove_symbol)
         for key in (QtGui.QKeySequence.Delete, QtGui.QKeySequence(Qt.Key_Backspace)):
             QtGui.QShortcut(key, self.sym_list, activated=lambda: self.remove_symbol(self.sym_list.currentItem()))
@@ -72,22 +72,22 @@ class FilterPanel(QtWidgets.QScrollArea):
         sl.setContentsMargins(0, 0, 0, 0)
         sl.addWidget(self.sym_edit)
         sl.addWidget(self.sym_list)
-        form.addRow(T("代碼"), sw)
+        form.addRow(T("Symbol"), sw)
 
         self.iid_edit = QtWidgets.QLineEdit()
-        self.iid_edit.setPlaceholderText(T("逗號分隔"))
-        form.addRow(T("商品 ID"), self.iid_edit)
+        self.iid_edit.setPlaceholderText(T("Comma-separated"))
+        form.addRow(T("Instrument ID"), self.iid_edit)
         self.t0_edit = QtWidgets.QLineEdit()
-        self.t0_edit.setPlaceholderText(T("09:30 或 2026-01-02 09:30:00"))
+        self.t0_edit.setPlaceholderText(T("09:30 or 2026-01-02 09:30:00"))
         self.t1_edit = QtWidgets.QLineEdit()
-        self.t1_edit.setPlaceholderText(T("10:00（不含）"))
-        form.addRow(T("起"), self.t0_edit)
-        form.addRow(T("迄"), self.t1_edit)
+        self.t1_edit.setPlaceholderText(T("10:00 (exclusive)"))
+        form.addRow(T("From"), self.t0_edit)
+        form.addRow(T("To"), self.t1_edit)
         self.tf_box = QtWidgets.QComboBox()
-        self.tf_box.addItem(T("自動（優先接收時間）"), "auto")
-        self.tf_box.addItem(T("接收時間"), "ts_recv")
-        self.tf_box.addItem(T("事件時間"), "ts_event")
-        form.addRow(T("時間欄位"), self.tf_box)
+        self.tf_box.addItem(T("Auto (prefer Receive Time)"), "auto")
+        self.tf_box.addItem(T("Receive Time"), "ts_recv")
+        self.tf_box.addItem(T("Event Time"), "ts_event")
+        form.addRow(T("Time Field"), self.tf_box)
 
         self.act_boxes, self.side_boxes = {}, {}
         self.act_row = QtWidgets.QWidget()
@@ -100,7 +100,7 @@ class FilterPanel(QtWidgets.QScrollArea):
             cb.setToolTip(action_docs.get(a, ""))
             self.act_boxes[a] = cb
             al.addWidget(cb, i // 4, i % 4)
-        form.addRow(T("動作"), self.act_row)
+        form.addRow(T("Action"), self.act_row)
         self.side_row = QtWidgets.QWidget()
         sl2 = QtWidgets.QHBoxLayout(self.side_row)
         sl2.setContentsMargins(0, 0, 0, 0)
@@ -109,34 +109,37 @@ class FilterPanel(QtWidgets.QScrollArea):
             self.side_boxes[s] = cb
             sl2.addWidget(cb)
         sl2.addStretch()
-        form.addRow(T("方向"), self.side_row)
+        form.addRow(T("Side"), self.side_row)
 
         self.where_edit = QtWidgets.QLineEdit()
         self.where_edit.setFont(mono)
         self.where_edit.setPlaceholderText("size >= 10 and side == 'B'")
-        self.where_edit.setToolTip(T("欄位名直接用；價格為實際數值（未定義為 NaN）。\n支援 and / or / not、+ - * /、== != < <= > >=、in (…)、abs()、isnan()。\n"
-                                     "例：ask_px_00 - bid_px_00 <= 0.05、action in ('T','F')"))
-        form.addRow(T("條件式"), self.where_edit)
+        self.where_edit.setToolTip(T("Use field names directly; prices are real values (undefined = "
+                                     "NaN).\nSupports and / or / not, + - * /, == != < <= > >=, in (…), "
+                                     "abs(), isnan().\nE.g. ask_px_00 - bid_px_00 <= 0.05, action in "
+                                     "('T','F')"))
+        form.addRow(T("Where"), self.where_edit)
         self.cap_edit = QtWidgets.QLineEdit("1000000")
         self.cap_edit.setValidator(QtGui.QIntValidator(1, 2_000_000_000))
-        self.full_cb = QtWidgets.QCheckBox(T("掃完整檔"))
-        self.full_cb.setToolTip(T("達到列數上限後繼續掃完整個檔案，以取得完整統計"))
+        self.full_cb = QtWidgets.QCheckBox(T("Scan Entire File"))
+        self.full_cb.setToolTip(T("Keep scanning the whole file after the row limit is reached, for complete "
+                                  "statistics"))
         cw = QtWidgets.QWidget()
         cl = QtWidgets.QHBoxLayout(cw)
         cl.setContentsMargins(0, 0, 0, 0)
         cl.addWidget(self.cap_edit, 1)
         cl.addWidget(self.full_cb)
-        form.addRow(T("最多列數"), cw)
+        form.addRow(T("Max Rows"), cw)
 
         bw = QtWidgets.QWidget()
         bl = QtWidgets.QHBoxLayout(bw)
         bl.setContentsMargins(0, 4, 0, 0)
-        self.b_scan = QtWidgets.QPushButton(T("掃描"))
+        self.b_scan = QtWidgets.QPushButton(T("Scan"))
         self.b_scan.setDefault(True)
         self.b_scan.clicked.connect(self.scanRequested)
-        self.b_stop = QtWidgets.QPushButton(T("停止"))
+        self.b_stop = QtWidgets.QPushButton(T("Stop"))
         self.b_stop.clicked.connect(self.stopRequested)
-        b_clear = QtWidgets.QPushButton(T("清除"))
+        b_clear = QtWidgets.QPushButton(T("Clear"))
         b_clear.clicked.connect(self.clear_filters)
         for b in (self.b_scan, self.b_stop, b_clear):
             bl.addWidget(b)
@@ -146,7 +149,7 @@ class FilterPanel(QtWidgets.QScrollArea):
         return fb
 
     def _build_progress(self):
-        pb = QtWidgets.QGroupBox(T("進度"))
+        pb = QtWidgets.QGroupBox(T("Progress"))
         pl = QtWidgets.QVBoxLayout(pb)
         self.progress = QtWidgets.QProgressBar()
         self.progress.setRange(0, 1000)
@@ -180,15 +183,15 @@ class FilterPanel(QtWidgets.QScrollArea):
         rng = "%s<br>%s" % (ts.fmt(m["start"], "dt"), ts.fmt(m["end"], "dt") if m["end"] else "—")
         syms = ", ".join(esc(s) for s in m["symbols_preview"][:6]) + (
             " … (+%d)" % (m["n_symbols"] - 6) if m["n_symbols"] > 6 else "")
-        rows = [(T("檔案"), esc(meta["path"])),
-                (T("大小"), fmt_bytes(meta["size"]) + (" (zst)" if meta["compressed"] else "")),
-                (T("資料集"), esc(m["dataset"])),
-                ("Schema", "%s%s" % (esc(m["schema"] or "mixed"), T(" · %dB/筆") % rec["size"] if rec else "")),
-                (T("DBN 版本"), "v%d%s" % (m["version"], T(" · 含送出時間") if m["ts_out"] else "")),
-                (T("時間 (%s)") % ts.tz_short, rng),
-                (T("代碼體系"), "%s → %s" % (esc(pretty_stype(m["stype_in"])), esc(pretty_stype(m["stype_out"])))),
-                (T("代碼"), syms or "—"),
-                (T("代碼對應"), "%s · %s IDs" % (fmt_n(m["n_mappings"]), fmt_n(m["n_instruments"])))]
+        rows = [(T("File"), esc(meta["path"])),
+                (T("Size"), fmt_bytes(meta["size"]) + (" (zst)" if meta["compressed"] else "")),
+                (T("Dataset"), esc(m["dataset"])),
+                ("Schema", "%s%s" % (esc(m["schema"] or "mixed"), T(" · %d B/record") % rec["size"] if rec else "")),
+                (T("DBN Version"), "v%d%s" % (m["version"], T(" · with send time") if m["ts_out"] else "")),
+                (T("Time (%s)") % ts.tz_short, rng),
+                (T("Symbology"), "%s → %s" % (esc(pretty_stype(m["stype_in"])), esc(pretty_stype(m["stype_out"])))),
+                (T("Symbol"), syms or "—"),
+                (T("Mappings"), "%s · %s IDs" % (fmt_n(m["n_mappings"]), fmt_n(m["n_instruments"])))]
         self.info.setText("<table cellspacing=0 cellpadding=1>" + "".join(
             "<tr><td style='color:%s;padding-right:8px' valign=top>%s</td><td style='font-family:Menlo'>%s</td></tr>"
             % (t["muted"], k, v) for k, v in rows) + "</table>")
@@ -217,7 +220,7 @@ class FilterPanel(QtWidgets.QScrollArea):
         for p in self.sym_patterns:
             it = QtWidgets.QListWidgetItem(("= " + p[:-1]) if p.endswith("$") else ("∋ " + p))
             it.setData(Qt.UserRole, p)
-            it.setToolTip(T("精確比對") if p.endswith("$") else T("子字串比對"))
+            it.setToolTip(T("Exact Match") if p.endswith("$") else T("Substring Match"))
             self.sym_list.addItem(it)
         self.sym_list.setVisible(bool(self.sym_patterns))
 
@@ -248,8 +251,8 @@ class FilterPanel(QtWidgets.QScrollArea):
 
     @staticmethod
     def state_text(st):
-        return (T("錯誤") if st["error"] else T("已停止") if st["cancelled"] else T("掃描中") if not st["done"]
-                else T("達上限，已停止（未掃完）") if st["truncated"] else T("完成"))
+        return (T("Error") if st["error"] else T("Stopped") if st["cancelled"] else T("Scanning") if not st["done"]
+                else T("Limit reached, stopped (incomplete)") if st["truncated"] else T("Done"))
 
     def render_progress(self, st):
         pct = st["bytes_done"] / st["bytes_total"] if st["bytes_total"] else 0
@@ -257,9 +260,10 @@ class FilterPanel(QtWidgets.QScrollArea):
         self.progress.setValue(1000 if complete else int(pct * 1000))
         rate = st["bytes_done"] / st["elapsed"] if st["elapsed"] > 0 else 0
         self.prog_label.setText(
-            T("<b>%s</b> · %s<br>已載入 <b>%s</b> 列%s<br>符合 %s / 已讀 %s 筆<br>%s / %s (%.1f%%) · %s/s%s") % (
+            T("<b>%s</b> · %s<br>Loaded <b>%s</b> rows%s<br>Matched %s / read %s records<br>%s / %s (%.1f%%) · "
+              "%s/s%s") % (
                 self.state_text(st), fmt_dur(st["elapsed"]), fmt_n(st["rows"]),
-                T("（上限）") if st["rows"] >= st["cap"] else "",
+                T(" (limit)") if st["rows"] >= st["cap"] else "",
                 fmt_n(st["matched"]), fmt_n(st["seen"]), fmt_bytes(st["bytes_done"]), fmt_bytes(st["bytes_total"]),
                 pct * 100, fmt_bytes(rate),
                 "<br><span style='color:gray'>%s</span>" % esc(" · ".join(st["filter"])) if st["filter"] else ""))

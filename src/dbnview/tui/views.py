@@ -34,20 +34,21 @@ def metadata_view(meta, fmt):
     m, rec = meta["metadata"], meta["record"]
     syms = ", ".join(m["symbols_preview"][:6]) + (" … (+%d)" % (m["n_symbols"] - 6) if m["n_symbols"] > 6 else "")
     return kv_table([
-        (T("檔案"), meta["path"]), (T("大小"), fmt_bytes(meta["size"])), (T("資料集"), m["dataset"]),
+        (T("File"), meta["path"]), (T("Size"), fmt_bytes(meta["size"])), (T("Dataset"), m["dataset"]),
         ("Schema", "%s%s" % (m["schema"] or "mixed", " · %dB" % rec["size"] if rec else "")),
-        (T("DBN 版本"), "v%d" % m["version"]),
-        (T("時間"), "%s → %s" % (fmt(m["start"]), fmt(m["end"]) if m["end"] else "—")),
-        (T("代碼體系"), "%s → %s" % (pretty_stype(m["stype_in"]), pretty_stype(m["stype_out"]))), (T("代碼"), syms or "—"),
-        (T("代碼對應"), "%s · %s IDs" % (fmt_n(m["n_mappings"]), fmt_n(m["n_instruments"]))),
+        (T("DBN Version"), "v%d" % m["version"]),
+        (T("Time"), "%s → %s" % (fmt(m["start"]), fmt(m["end"]) if m["end"] else "—")),
+        (T("Symbology"), "%s → %s" % (pretty_stype(m["stype_in"]), pretty_stype(m["stype_out"]))),
+        (T("Symbol"), syms or "—"),
+        (T("Mappings"), "%s · %s IDs" % (fmt_n(m["n_mappings"]), fmt_n(m["n_instruments"]))),
     ])
 
 
 def progress_text(st):
     if not st:
         return Text("—")
-    state = (T("錯誤") if st["error"] else T("已停止") if st["cancelled"] else T("掃描中") if not st["done"]
-             else T("達上限，已停止（未掃完）") if st["truncated"] else T("完成"))
+    state = (T("Error") if st["error"] else T("Stopped") if st["cancelled"] else T("Scanning") if not st["done"]
+             else T("Limit reached, stopped (incomplete)") if st["truncated"] else T("Done"))
     pct = 100.0 * st["bytes_done"] / st["bytes_total"] if st["bytes_total"] else 0
     t = Text()
     t.append(state, style="bold red" if st["error"] else "bold")
@@ -63,8 +64,8 @@ def progress_text(st):
 def ladder(bids, asks, extra_label=None):
     mx = max([b[1] or 0 for b in bids] + [a[1] or 0 for a in asks] + [1])
     t = Table(show_header=True, header_style="dim", box=None, padding=(0, 1))
-    t.add_column(T("價格"), justify="right", min_width=10, no_wrap=True)
-    t.add_column(T("數量"), justify="right", min_width=8, no_wrap=True)
+    t.add_column(T("Price"), justify="right", min_width=10, no_wrap=True)
+    t.add_column(T("order|Size"), justify="right", min_width=8, no_wrap=True)
     t.add_column("", width=16, no_wrap=True)
     if extra_label:
         t.add_column(extra_label, justify="left", style="dim", min_width=6, no_wrap=True)
@@ -91,18 +92,18 @@ def detail_view(job, row, o, kinds, fmt, book=None):
             break
         c = "ct" if "bid_ct_" + k in o else ("pb" if "bid_pb_" + k in o else None)
         if c:
-            label = T("筆數") if c == "ct" else T("交易所")
+            label = T("Orders") if c == "ct" else T("Venue")
         pv = (lambda x: PUBLISHERS.get(x, str(x)).split(".")[-1]) if c == "pb" else (lambda x: x)
         if o["bid_px_" + k] is not None:
             bids.append((o["bid_px_" + k], o["bid_sz_" + k], pv(o["bid_%s_%s" % (c, k)]) if c else None))
         if o["ask_px_" + k] is not None:
             asks.append((o["ask_px_" + k], o["ask_sz_" + k], pv(o["ask_%s_%s" % (c, k)]) if c else None))
     if bids or asks:
-        parts += [Text(T("買賣盤（此筆之後）"), style="bold"), ladder(bids, asks, label), Text("")]
+        parts += [Text(T("Bid/Ask (After This Record)"), style="bold"), ladder(bids, asks, label), Text("")]
     if book:
-        parts += [Text("%s · %s · %s" % (T("訂單簿（MBO 重建）"), book["symbol"] or book["instrument_id"],
+        parts += [Text("%s · %s · %s" % (T("Order Book (Rebuilt from MBO)"), book["symbol"] or book["instrument_id"],
                                          fmt_n(book["orders"])), style="bold"),
-                  ladder(book["bids"], book["asks"], T("掛單數")), Text("")]
+                  ladder(book["bids"], book["asks"], T("book|Orders")), Text("")]
     rows = []
     for c in job.columns:
         v = o.get(c)
@@ -123,7 +124,7 @@ def detail_view(job, row, o, kinds, fmt, book=None):
             if et:
                 s.append("  = " + et, style="dim")
         rows.append((pretty_field(c), s))
-    parts.append(kv_table(rows, T("欄位")))
+    parts.append(kv_table(rows, T("Columns")))
     try:
         parts += [Text(""), raw_view(job.raw(row))]
     except Exception:  # noqa: BLE001
@@ -154,10 +155,10 @@ def raw_view(raw):
 
 def stats_view(st, s, fmt):
     if not st or not s:
-        return Text(T("尚無統計"), style="dim")
-    head = kv_table([(T("已讀紀錄"), fmt_n(st["seen"])), ("Matched", fmt_n(st["matched"])),
-                     (T("商品數"), fmt_n(s["n_instruments"])),
-                     (T("時間"), "%s → %s" % (fmt(st["tmin"]), fmt(st["tmax"])) if st["tmin"] else "—")])
+        return Text(T("No statistics yet"), style="dim")
+    head = kv_table([(T("Records Read"), fmt_n(st["seen"])), ("Matched", fmt_n(st["matched"])),
+                     (T("Instruments"), fmt_n(s["n_instruments"])),
+                     (T("Time"), "%s → %s" % (fmt(st["tmin"]), fmt(st["tmax"])) if st["tmin"] else "—")])
 
     def bars(title, d):
         t = Table(title=title, box=None, show_header=False, padding=(0, 1), title_justify="left", title_style="bold")
@@ -168,12 +169,13 @@ def stats_view(st, s, fmt):
             t.add_row(str(k), Text("█" * max(1, int(20 * v / mx)), style="cyan"), "%s · %.1f%%" % (fmt_n(v), 100 * v / tot))
         return t
 
-    top = Table(title=T("商品數"), box=None, header_style="dim", title_justify="left", title_style="bold")
-    for c in (T("代碼"), T("商品 ID"), "Rows", "Share %"):
+    top = Table(title=T("Instruments"), box=None, header_style="dim", title_justify="left", title_style="bold")
+    for c in (T("Symbol"), T("Instrument ID"), "Rows", "Share %"):
         top.add_column(c, justify="right" if c in ("Rows", "Share %") else "left")
     for iid, c, sym in s["top"][:50]:
         top.add_row(sym or "—", str(iid), fmt_n(c), "%.2f" % (100 * c / max(1, st["matched"])))
-    return Group(head, Text(""), bars(T("紀錄類型"), s["rtype"]), bars(T("動作"), s["action"]), bars(T("方向"), s["side"]),
+    return Group(head, Text(""), bars(T("Record Type"), s["rtype"]), bars(T("Action"), s["action"]),
+                 bars(T("Side"), s["side"]),
                  Text(""), top)
 
 
@@ -246,7 +248,7 @@ def chart_view(job, iid, mode, width, height, fmt_short, tz, indicator="none"):
             span = b["t"][-1] - b["t"][0]
             b = market.bars(job, iid, market.pick_interval(span, max_bars=max(10, width // 3), min_iv=b["interval"]))
         if b is None or not len(b["t"]):
-            return Text(T("此商品沒有可畫 K 線的資料"), style="dim")
+            return Text(T("No data to draw candles for this instrument"), style="dim")
         plt.date_form("d/m/Y H:M:S", "H:M:S")
         # plotext parses date strings as UTC but prints tick labels in the machine's local zone;
         # pre-shift by the local UTC offset so the labels show wall-clock time in the chosen zone.
@@ -287,7 +289,7 @@ def chart_view(job, iid, mode, width, height, fmt_short, tz, indicator="none"):
     elif mode == "quotes":
         q = market.quotes(job, iid, maxpts=max(200, width * 2))
         if q is None:
-            return Text(T("此商品沒有報價（bid/ask）欄位"), style="dim")
+            return Text(T("This instrument has no quote (bid/ask) fields"), style="dim")
         ok = np.isfinite(q["bid"]) & np.isfinite(q["ask"])
         plt.plot(list(q["t"][ok]), list(q["bid"][ok]), color="green", label="Bid")
         plt.plot(list(q["t"][ok]), list(q["ask"][ok]), color="red", label="Ask")
@@ -297,7 +299,8 @@ def chart_view(job, iid, mode, width, height, fmt_short, tz, indicator="none"):
     else:
         f = market.flow(job, iid)
         if f is None:
-            return Text(T("此商品沒有成交紀錄（需要 trades / tbbo / mbp / cmbp / mbo 等含成交的資料）"), style="dim")
+            return Text(T("No trades for this instrument (needs data with trades, e.g. trades / tbbo / mbp / cmbp / "
+                          "mbo)"), style="dim")
         tr = f["trades"]
         for side, color in ((b"B", "green"), (b"A", "red"), (b"N", "gray")):
             m = tr["side"] == side
@@ -312,7 +315,8 @@ def chart_view(job, iid, mode, width, height, fmt_short, tz, indicator="none"):
 def iv_view(s, width, height):
     """IV table (expiry × moneyness buckets) plus the ATM term structure."""
     if s is None or not len(s["iv"]):
-        return Text(T("這個時間點沒有可用的期權報價（試試較晚的時間，或放寬價差 / 到期條件）。"), style="dim")
+        return Text(T("No usable option quotes at this time (try a later time, or relax the spread / expiry "
+                      "limits)."), style="dim")
     buckets = [-0.3, -0.2, -0.1, -0.05, 0.0, 0.05, 0.1, 0.2, 0.3]
     t = Table(title="%s IV · ln(K/F)" % s["root"], header_style="dim", box=None, title_justify="left", title_style="bold")
     t.add_column("Expiry")
@@ -348,7 +352,7 @@ def iv_view(s, width, height):
 def walls_view(w, width, pct=0.08):
     """Option walls as a strike table with call/put bars, plus the key levels."""
     if w is None:
-        return Text(T("此位置沒有足夠資料"), style="dim")
+        return Text(T("Not enough data here"), style="dim")
     spot = w["spot"]
     k = w["strike"]
     keep = np.abs(k - spot) <= spot * pct if spot else np.ones(len(k), bool)
@@ -359,20 +363,21 @@ def walls_view(w, width, pct=0.08):
     big = lambda v: next(("%.2f%s" % (v / n, u) for u, n in (("B", 1e9), ("M", 1e6), ("K", 1e3)) if abs(v) >= n),
                          "%.0f" % v)
     levels = Text()
-    for label, v, style in ((T("標的價"), spot, "cyan"), (T("Call 牆"), w["call_wall"], "green"),
-                            (T("Put 牆"), w["put_wall"], "red"), (T("Gamma 翻轉點"), w["zero_gamma"], "yellow")):
+    for label, v, style in ((T("Underlying Price"), spot, "cyan"), (T("Call Wall"), w["call_wall"], "green"),
+                            (T("Put Wall"), w["put_wall"], "red"), (T("Gamma Flip"), w["zero_gamma"], "yellow")):
         if v:
-            levels.append("%s %s   " % (label, ("%.2f" % v) if label != T("Call 牆") and label != T("Put 牆") else "%g" % v),
+            walls = (T("Call Wall"), T("Put Wall"))
+            levels.append("%s %s   " % (label, ("%.2f" % v) if label not in walls else "%g" % v),
                           style=style)
     if w["total_gex"] is not None:
-        levels.append("%s %s" % (T("總 Gamma 曝險"), big(w["total_gex"])))
-    title = {"gex": T("Gamma 曝險（每 1% 變動）"), "oi": T("持倉量"), "vol": T("成交量")}[metric]
+        levels.append("%s %s" % (T("Total Gamma Exposure"), big(w["total_gex"])))
+    title = {"gex": T("Gamma Exposure (per 1% Move)"), "oi": T("Open Interest"), "vol": T("Volume")}[metric]
     bw = max(10, (width - 40) // 2)
     mx = max(float(np.max(np.abs(np.r_[call, put]))) if len(k) else 1, 1e-9)
     t = Table(title=title, header_style="dim", box=None, title_justify="left", title_style="bold")
     t.add_column("Put", justify="right", no_wrap=True)
     t.add_column("", justify="right", no_wrap=True, width=bw)
-    t.add_column(T("履約價"), justify="center", no_wrap=True)
+    t.add_column(T("Strike"), justify="center", no_wrap=True)
     t.add_column("", no_wrap=True, width=bw)
     t.add_column("Call", no_wrap=True)
     for K, c, p in sorted(zip(k, call, put), reverse=True):

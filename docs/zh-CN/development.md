@@ -62,7 +62,7 @@ DBNVIEW_SELFTEST=/tmp/dbnview_shot .venv/bin/python -m dbnview path/to/file.dbn.
 | `test_engine.py` | 元数据往返、解码、拒绝 v4、筛选、时间筛选和跳转、行数上限、原始字节布局、统计 |
 | `test_analysis.py` | MBO 订单簿重放、K 线、热图、价格序列、OSI 解析、Black-76 IV 往返、曲面和远期价格还原 |
 | `test_indicators.py` | SMA/EMA、布林带、VWAP、RSI、MACD、ATR、随机指标、指标注册表 |
-| `test_i18n.py` | 每个 `T("…")` 字面量都有完整翻译且占位符一致；reference 各语言文件使用相同的键 |
+| `test_i18n.py` | 每个 `T("…")` 字面量都有完整翻译且占位符一致；键都是英文且都被用到；reference 各语言文件使用相同的键 |
 | `test_frontends.py` | web API、无界面 TUI、离屏 GUI。缺少对应的可选依赖时会跳过。 |
 
 GUI 测试会设置 `QT_QPA_PLATFORM=offscreen`，所以不需要显示器。在 Linux CI 上仍然需要 Qt 系统库。
@@ -102,34 +102,42 @@ GUI 测试会设置 `QT_QPA_PLATFORM=offscreen`，所以不需要显示器。在
 
 ### 6.1 添加界面文字
 
-1. 在使用的地方用 `T(...)` 包住文字：
+1. 在使用的地方用 `T(...)` 包住英文文字：
 
    ```python
    from ..i18n import T
 
-   go = QtWidgets.QPushButton(T("IV 曲面"))
+   go = QtWidgets.QPushButton(T("IV Surface"))
    ```
 
-   键就是源字符串本身。现有的键是原始的（中文）界面文字。如果找不到对应条目，`T()` 会原样返回键，所以缺少翻译
-   时会显示未翻译的文字，而不是报错。
+   键就是英文文字，所以英文界面不需要条目。如果找不到对应条目，`T()` 会返回键，所以缺少翻译时会显示英文，
+   而不是报错。
 
-2. 在 `src/dbnview/i18n/strings.py` 中添加一个包含**全部 7 种语言**的条目：
+2. 在 `src/dbnview/i18n/strings.py` 中添加一个包含**其余 6 种语言**的条目：
 
    ```python
    STRINGS = {
        # ...
-       'IV 曲面': {'zh_Hant': 'IV 曲面', 'zh_Hans': 'IV 曲面', 'en': 'IV Surface', 'ja': 'IV サーフェス',
-                   'de': 'IV-Fläche', 'ko': 'IV 곡면', 'es': 'Superficie de IV'},
+       "IV Surface": {
+           "zh_Hant": "IV 曲面",
+           "zh_Hans": "IV 曲面",
+           "ja": "IV サーフェス",
+           "de": "IV-Fläche",
+           "ko": "IV 곡면",
+           "es": "Superficie de IV",
+       },
    }
    ```
 
-3. 运行 `pytest tests/test_i18n.py`。以下三种情况会导致测试失败：
-   - 某个 `T("…")` 字面量没有对应条目
-   - 某个条目缺少一种语言
+3. 运行 `pytest tests/test_i18n.py`。以下情况会导致测试失败：
+   - 某个 `T("…")` 字面量没有对应条目，或某个条目在代码里没有被用到
+   - 某个条目缺少一种语言，或它的键不是英文
    - 某个翻译的占位符（`%s`、`%d`、`%.1f`、`{name}`）与键不一致
 
 提示：
 
+- 英文拼写相同但翻译不同的词，用上下文前缀区分：`T("price|Open")`（开盘价）与 `T("Open")`（打开文件）。
+  英文界面显示 `|` 后面的部分。
 - 键首尾的空格也是键的一部分。
 - 快捷键提示用 macOS 符号书写（⌘、⇧⌘）。在 GUI 中，把结果交给 `native_shortcuts()`，它会在 Windows 和 Linux
   上把这些符号转换为 `Ctrl+` / `Ctrl+Shift+`。

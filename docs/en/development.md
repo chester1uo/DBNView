@@ -60,7 +60,7 @@ directory.
 | `test_engine.py` | metadata round trip, decoding, v4 rejection, filters, time filter and seek, row limit, raw layout, statistics |
 | `test_analysis.py` | MBO book replay, bars, heatmap, price series, OSI parsing, Black-76 IV round trip, surface/forward recovery |
 | `test_indicators.py` | SMA/EMA, Bollinger, VWAP, RSI, MACD, ATR, Stochastic, the indicator registry |
-| `test_i18n.py` | every `T("…")` literal has a complete translation with matching placeholders; reference locales share keys |
+| `test_i18n.py` | every `T("…")` literal has a complete translation with matching placeholders; keys are English and all used; reference locales share keys |
 | `test_frontends.py` | web API, headless TUI, offscreen GUI. Each is skipped when its optional dependencies are missing. |
 
 The GUI test sets `QT_QPA_PLATFORM=offscreen`, so it runs without a display. On Linux CI it still needs the Qt
@@ -103,35 +103,42 @@ The desktop app and the terminal UI support 7 languages:
 
 ### 6.1 Adding a UI string
 
-1. Wrap the text in `T(...)` where it is used:
+1. Wrap the English text in `T(...)` where it is used:
 
    ```python
    from ..i18n import T
 
-   go = QtWidgets.QPushButton(T("IV 曲面"))
+   go = QtWidgets.QPushButton(T("IV Surface"))
    ```
 
-   The key is the source string itself. Existing keys are the original (Chinese) UI text. If no entry exists,
-   `T()` returns the key unchanged, which is why missing translations show up as untranslated text rather than
-   errors.
+   The key is the English text, so the English UI needs no entry. If no entry exists, `T()` returns the key, which is
+   why a missing translation shows up as English rather than an error.
 
-2. Add an entry with **all 7 languages** to `src/dbnview/i18n/strings.py`:
+2. Add an entry with the **6 other languages** to `src/dbnview/i18n/strings.py`:
 
    ```python
    STRINGS = {
        # ...
-       'IV 曲面': {'zh_Hant': 'IV 曲面', 'zh_Hans': 'IV 曲面', 'en': 'IV Surface', 'ja': 'IV サーフェス',
-                   'de': 'IV-Fläche', 'ko': 'IV 곡면', 'es': 'Superficie de IV'},
+       "IV Surface": {
+           "zh_Hant": "IV 曲面",
+           "zh_Hans": "IV 曲面",
+           "ja": "IV サーフェス",
+           "de": "IV-Fläche",
+           "ko": "IV 곡면",
+           "es": "Superficie de IV",
+       },
    }
    ```
 
-3. Run `pytest tests/test_i18n.py`. It fails in three cases:
-   - a `T("…")` literal has no entry
-   - an entry lacks a language
+3. Run `pytest tests/test_i18n.py`. It fails when:
+   - a `T("…")` literal has no entry, or an entry is not used anywhere in the code
+   - an entry lacks a language, or its key is not English
    - a translation's placeholders (`%s`, `%d`, `%.1f`, `{name}`) don't match the key's
 
 Tips:
 
+- Words that are spelled the same in English but translate differently get a context prefix: `T("price|Open")`
+  (opening price) vs `T("Open")` (open a file). English shows the part after `|`.
 - Leading and trailing spaces are part of the key.
 - Write shortcut hints with macOS glyphs (⌘, ⇧⌘). In the GUI, pass the result through `native_shortcuts()`, which
   turns them into `Ctrl+` / `Ctrl+Shift+` on Windows and Linux.

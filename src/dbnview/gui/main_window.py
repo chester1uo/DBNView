@@ -57,35 +57,35 @@ class MainWindow(QtWidgets.QMainWindow):
     # ---- construction ---------------------------------------------------------------
     def _build_actions(self):
         A = QtGui.QAction
-        self.a_open = A(T("開啟檔案…"), self, shortcut=QtGui.QKeySequence.Open, triggered=self.open_local)
-        self.a_remote = A(T("開啟遠端檔案（ssh）…"), self, shortcut="Ctrl+Shift+O", triggered=self.open_remote)
-        self.a_scan = A(T("掃描"), self, shortcut="Ctrl+R", triggered=self.start_scan)
-        self.a_stop = A(T("停止"), self, shortcut="Ctrl+.", triggered=self.stop_scan)
-        self.a_export = A(T("匯出 CSV…"), self, shortcut="Ctrl+E", triggered=lambda: self.table.export_csv())
-        self.a_detail = A(T("明細面板"), self, shortcut="Ctrl+I", checkable=True, checked=True,
+        self.a_open = A(T("Open File…"), self, shortcut=QtGui.QKeySequence.Open, triggered=self.open_local)
+        self.a_remote = A(T("Open Remote File (SSH)…"), self, shortcut="Ctrl+Shift+O", triggered=self.open_remote)
+        self.a_scan = A(T("Scan"), self, shortcut="Ctrl+R", triggered=self.start_scan)
+        self.a_stop = A(T("Stop"), self, shortcut="Ctrl+.", triggered=self.stop_scan)
+        self.a_export = A(T("Export CSV…"), self, shortcut="Ctrl+E", triggered=lambda: self.table.export_csv())
+        self.a_detail = A(T("Detail Panel"), self, shortcut="Ctrl+I", checkable=True, checked=True,
                           triggered=lambda on: self.detail.setVisible(on))
-        self.a_filters = A(T("檔案與篩選面板"), self, shortcut="Ctrl+L", checkable=True, checked=True,
+        self.a_filters = A(T("File and Filter Panel"), self, shortcut="Ctrl+L", checkable=True, checked=True,
                            triggered=lambda on: self.left.setVisible(on))
-        self.a_quit = A(T("結束"), self, shortcut=QtGui.QKeySequence.Quit, triggered=self.close)
-        self.recent_menu = QtWidgets.QMenu(T("最近開啟"), self)
+        self.a_quit = A(T("Quit"), self, shortcut=QtGui.QKeySequence.Quit, triggered=self.close)
+        self.recent_menu = QtWidgets.QMenu(T("Open Recent"), self)
         mb = self.menuBar()
-        m = mb.addMenu(T("檔案"))
+        m = mb.addMenu(T("File"))
         m.addActions([self.a_open, self.a_remote])
         m.addMenu(self.recent_menu)
         m.addSeparator()
         m.addAction(self.a_export)
         m.addSeparator()
         m.addAction(self.a_quit)
-        mb.addMenu(T("資料")).addActions([self.a_scan, self.a_stop])
-        self.col_menu = mb.addMenu(T("欄位"))
+        mb.addMenu(T("Data")).addActions([self.a_scan, self.a_stop])
+        self.col_menu = mb.addMenu(T("Columns"))
         self.col_menu.aboutToShow.connect(lambda: self.table.fill_col_menu(menu=self.col_menu))
-        mb.addMenu(T("檢視")).addActions([self.a_filters, self.a_detail])
-        self.a_joint = A(T("股票＋期權聯合分析…"), self, shortcut="Ctrl+J", triggered=self.open_joint)
-        mb.addMenu(T("工具")).addAction(self.a_joint)
-        about = QtGui.QAction(T("關於 DBNView"), self, triggered=self.show_about)
+        mb.addMenu(T("View")).addActions([self.a_filters, self.a_detail])
+        self.a_joint = A(T("Stock + Options Analysis…"), self, shortcut="Ctrl+J", triggered=self.open_joint)
+        mb.addMenu(T("Tools")).addAction(self.a_joint)
+        about = QtGui.QAction(T("About DBNView"), self, triggered=self.show_about)
         about.setMenuRole(QtGui.QAction.AboutRole)
-        mb.addMenu(T("說明")).addAction(about)
-        lm = mb.addMenu(T("語言") + ("" if i18n.get_lang() == "en" else " / Language"))
+        mb.addMenu(T("Help")).addAction(about)
+        lm = mb.addMenu(T("Language") + ("" if i18n.get_lang() == "en" else " / Language"))
         grp = QtGui.QActionGroup(self)
         for code, label in i18n.LANGS:
             a = lm.addAction(label)
@@ -101,23 +101,23 @@ class MainWindow(QtWidgets.QMainWindow):
         tb.setToolButtonStyle(Qt.ToolButtonTextOnly)
         tb.addActions([self.a_open, self.a_remote])
         rb = QtWidgets.QToolButton()
-        rb.setText(T("最近"))
+        rb.setText(T("Recent"))
         rb.setMenu(self.recent_menu)
         rb.setPopupMode(QtWidgets.QToolButton.InstantPopup)
         tb.addWidget(rb)
         tb.addSeparator()
         tb.addActions([self.a_scan, self.a_stop])
         tb.addSeparator()
-        tb.addWidget(QtWidgets.QLabel(T(" 時區 ")))
+        tb.addWidget(QtWidgets.QLabel(T(" Time Zone ")))
         self.tz_box = QtWidgets.QComboBox()
         for label, tz in TZS:
             self.tz_box.addItem(label, tz)
         self.tz_box.setCurrentIndex(max(0, self.tz_box.findData(self.tsfmt.tz)))
         self.tz_box.currentIndexChanged.connect(self.on_tz)
         tb.addWidget(self.tz_box)
-        tb.addWidget(QtWidgets.QLabel(T(" 時間 ")))
+        tb.addWidget(QtWidgets.QLabel(T(" Time ")))
         self.mode_box = QtWidgets.QComboBox()
-        for label, m in ((T("日期+時間"), "dt"), (T("只顯示時間"), "t"), (T("原始 ns"), "ns")):
+        for label, m in ((T("Date+Time"), "dt"), (T("Time Only"), "t"), (T("Raw Nanoseconds"), "ns")):
             self.mode_box.addItem(label, m)
         self.mode_box.setCurrentIndex(max(0, self.mode_box.findData(self.tsfmt.mode)))
         self.mode_box.currentIndexChanged.connect(self.on_tz)
@@ -145,9 +145,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.tabs = QtWidgets.QTabWidget()
         self.tabs.setDocumentMode(True)
-        for w, label in ((self.table, T("表格")), (self.chart, T("圖表")), (self.stats_view, T("統計")),
-                         (self.format_view, T("格式說明")), (self.iv, T("IV 曲面")),
-                         (self.walls, T("期權牆"))):
+        for w, label in ((self.table, T("Table")), (self.chart, T("Chart")), (self.stats_view, T("Statistics")),
+                         (self.format_view, T("Format Guide")), (self.iv, T("IV Surface")),
+                         (self.walls, T("Option Walls"))):
             self.tabs.addTab(w, label)
         self.tabs.currentChanged.connect(self.on_tab)
 
@@ -158,13 +158,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.split.setSizes([310, 900, 380])
         self.split.setCollapsible(1, False)
         self.setCentralWidget(self.split)
-        self.statusBar().showMessage(native_shortcuts(T("拖一個 .dbn / .dbn.zst 檔進來，或用 ⌘O / ⇧⌘O 開啟")))
+        self.statusBar().showMessage(native_shortcuts(T("Drop a .dbn / .dbn.zst file here, or open one with ⌘O / ⇧⌘O")))
 
     # ---- opening files ---------------------------------------------------------------
     def open_local(self):
         start = self.settings.value("lastdir", os.path.expanduser("~"))
-        p, _ = QtWidgets.QFileDialog.getOpenFileName(self, T("開啟 DBN 檔"), start,
-                                                     T("DBN 檔 (*.dbn *.zst *.dbn.zst);;所有檔案 (*)"))
+        p, _ = QtWidgets.QFileDialog.getOpenFileName(self, T("Open DBN File"), start,
+                                                     T("DBN files (*.dbn *.zst *.dbn.zst);;All files (*)"))
         if p:
             self.settings.setValue("lastdir", os.path.dirname(p))
             self.open_path(p)
@@ -176,7 +176,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def open_path(self, path):
         self.show_error(None)
-        self.statusBar().showMessage(T("讀取檔頭… %s") % path)
+        self.statusBar().showMessage(T("Reading header… %s") % path)
         QtWidgets.QApplication.setOverrideCursor(Qt.BusyCursor)
 
         def done(fi):
@@ -186,7 +186,7 @@ class MainWindow(QtWidgets.QMainWindow):
         def fail(e):
             QtWidgets.QApplication.restoreOverrideCursor()
             self.show_error(e)
-            self.statusBar().showMessage(T("開啟失敗"))
+            self.statusBar().showMessage(T("Failed to Open"))
 
         run_bg(FileInfo.get, path, done=done, fail=fail)
 
@@ -319,7 +319,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for p in rec:
             self.recent_menu.addAction(p).triggered.connect(lambda _=False, p=p: self.open_path(p))
         if not rec:
-            self.recent_menu.addAction(T("（沒有）")).setEnabled(False)
+            self.recent_menu.addAction(T("(none)")).setEnabled(False)
 
     def dragEnterEvent(self, e):
         if e.mimeData().hasUrls():
