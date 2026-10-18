@@ -91,3 +91,40 @@ def test_gui_offscreen(trades_file):
     app.processEvents()
     assert win.detail.row == 3
     win.close()
+
+
+def test_gui_attributes_do_not_shadow_qt_methods():
+    """An attribute like `self.metric = QComboBox()` hides QWidget.metric(); Qt then calls the combo box and the
+    app dies at startup. Check every object the windows create."""
+    pytest.importorskip("PySide6")
+    pytest.importorskip("pyqtgraph")
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6 import QtCore, QtWidgets
+    from dbnview.gui.app import apply_lang
+    from dbnview.gui.joint_window import JointWindow
+    from dbnview.gui.main_window import MainWindow
+    from dbnview.gui.remote_dialog import RemoteDialog, SSHProfileDialog
+    from dbnview.gui.splash import Splash
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    apply_lang("en")
+    win = MainWindow()
+    roots = [win, Splash(), SSHProfileDialog(None), JointWindow(win),
+             RemoteDialog(win, QtCore.QSettings("dbnview-test", "shadow"))]
+    bad = set()
+    for root in roots:
+        for o in [root] + root.findChildren(QtCore.QObject):
+            try:
+                attrs = vars(o)
+            except TypeError:
+                continue
+            for name in attrs:
+                for cls in type(o).__mro__:
+                    v = cls.__dict__.get(name)
+                    if cls.__module__.startswith(("PySide6", "Shiboken")) and v is not None \
+                            and not isinstance(v, QtCore.Signal):
+                        bad.add("%s.%s hides %s.%s" % (type(o).__name__, name, cls.__name__, name))
+    for root in roots:
+        root.close()
+        root.deleteLater()
+    app.processEvents()
+    assert not bad, sorted(bad)

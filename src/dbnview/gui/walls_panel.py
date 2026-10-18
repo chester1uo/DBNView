@@ -67,10 +67,10 @@ class WallsPanel(QtWidgets.QWidget):
         bar1.addWidget(oi_btn)
         bar1.addWidget(self.oi_label, 1)
 
-        self.metric = QtWidgets.QComboBox()
+        self.metric_box = QtWidgets.QComboBox()
         for k, label in METRICS:
-            self.metric.addItem(T(label), k)
-        self.metric.currentIndexChanged.connect(lambda _: self.draw())
+            self.metric_box.addItem(T(label), k)
+        self.metric_box.currentIndexChanged.connect(lambda _: self.draw())
         self.range = QtWidgets.QComboBox()
         for v, label in RANGES:
             self.range.addItem(T(label), v)
@@ -81,7 +81,7 @@ class WallsPanel(QtWidgets.QWidget):
         self.width_pct.setValue(8)
         self.width_pct.setSuffix(" %")
         self.width_pct.valueChanged.connect(lambda _: self.draw())
-        for label, w in ((T("指標"), self.metric), (T("到期範圍"), self.range), (T("履約價範圍 ±"), self.width_pct)):
+        for label, w in ((T("指標"), self.metric_box), (T("到期範圍"), self.range), (T("履約價範圍 ±"), self.width_pct)):
             bar2.addWidget(QtWidgets.QLabel(label))
             bar2.addWidget(w)
         bar2.addStretch()
@@ -230,8 +230,8 @@ class WallsPanel(QtWidgets.QWidget):
         if w["has_vol"]:
             lv.append("%s %s / %s" % (T("成交量牆 Call/Put"), _fmt_g(w["vol_call_wall"]), _fmt_g(w["vol_put_wall"])))
         self.levels.setText("   ".join(lv))
-        if self.metric.currentData() == "gex" and not w["has_gex"]:
-            self.metric.setCurrentIndex(1 if w["has_oi"] else 2)
+        if self.metric_box.currentData() == "gex" and not w["has_gex"]:
+            self.metric_box.setCurrentIndex(1 if w["has_oi"] else 2)
         self.draw()
 
     # ---- drawing ---------------------------------------------------------------------
@@ -243,7 +243,7 @@ class WallsPanel(QtWidgets.QWidget):
         for p in (self.bars, self.profile):
             p.clear()
             p.setBackground(t["bg"])
-        metric = self.metric.currentData()
+        metric = self.metric_box.currentData()
         k = w["strike"]
         if metric == "gex":
             call, put, label = w["call_gex"], w["put_gex"], T("Gamma 曝險（每 1% 變動）")
