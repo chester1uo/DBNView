@@ -1,5 +1,6 @@
 """Trackpad pinch-to-zoom for pyqtgraph 2D plots and the 3D GL view (macOS native gestures), and an OpenGL check."""
 import os
+import sys
 
 from PySide6 import QtCore, QtGui
 from PySide6.QtCore import Qt
@@ -45,13 +46,16 @@ def _probe_opengl():
         version = (ctx.format().majorVersion(), ctx.format().minorVersion())
         text = lambda name: str(f.glGetString(name) or "").strip()
         desc = "OpenGL %s (%s)" % (text(0x1F02) or "%d.%d" % version, text(0x1F01) or "unknown renderer")
-        while f.glGetError():  # clear stale errors, then try the call that fails on a broken context
-            pass
-        f.glClearColor(0.0, 0.0, 0.0, 1.0)
-        if f.glGetError():
-            return False, desc + ": glClearColor failed"
         if version < (2, 0) or "GDI Generic" in desc:
             return False, desc + ": 2.0 or newer is required"
+        # pyqtgraph draws through PyOpenGL, which calls the system OpenGL library directly. When Qt has switched to
+        # its own software renderer (opengl32sw.dll on a machine without a GPU driver) that library has no current
+        # context: the first call raises GLError and the next one crashes. Try the first call pyqtgraph makes.
+        from OpenGL import GL
+        try:
+            GL.glClearColor(0.0, 0.0, 0.0, 1.0)
+        except Exception as e:  # noqa: BLE001
+            return False, desc + ": PyOpenGL cannot draw with this context (%s)" % type(e).__name__
         return True, desc
     except Exception as e:  # noqa: BLE001 - any failure here means: do not create GL widgets
         return False, "OpenGL check failed: %s" % e
@@ -93,6 +97,18 @@ def enable_pinch(view):
 if gl is not None:
     class ZoomGLView(gl.GLViewWidget):
         """GLViewWidget with pinch zoom, two-finger rotate and fixed camera presets."""
+
+        gl_failed = False
+
+        def paintGL(self, *args, **kwargs):
+            # After one failed paint, more GL calls on a broken context can crash the process: stop drawing.
+            if self.gl_failed:
+                return
+            try:
+                super().paintGL(*args, **kwargs)
+            except Exception as e:  # noqa: BLE001
+                self.gl_failed = True
+                print("DBNView: 3D view disabled after an OpenGL error: %s" % e, file=sys.stderr)
 
         def event(self, ev):
             if ev.type() == QtCore.QEvent.NativeGesture:

@@ -130,6 +130,9 @@ def main(argv=None):
     note("imported main window")
     win = MainWindow()
     note("main window built")
+    if os.environ.get("DBNVIEW_SELFTEST"):
+        from .gestures import opengl_status
+        note("3D view: %s, %s" % opengl_status())
     app.win = win
     splash.message(T("準備就緒"))
     while time.time() - shown < 1.2 and not os.environ.get("DBNVIEW_SELFTEST"):  # keep it readable
