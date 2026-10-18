@@ -57,6 +57,19 @@ jobs:
           xattr -cr dist/DBNView.app
           codesign -s - --force --deep dist/DBNView.app
           ditto -c -k --keepParent dist/DBNView.app DBNView-macOS.zip
+      - name: Smoke-test the bundle (macOS)
+        if: runner.os == 'macOS'
+        run: python tools/selftest_app.py dist/DBNView.app/Contents/MacOS/DBNView "$RUNNER_TEMP/smoke"
+      - name: Smoke-test the bundle (Windows)
+        if: runner.os == 'Windows'
+        run: python tools/selftest_app.py dist\DBNView\DBNView.exe "$env:RUNNER_TEMP\smoke"
+      - name: Keep the smoke-test screenshots and log
+        if: always() && runner.os != 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoketest-${{ runner.os }}
+          path: ${{ runner.temp }}/smoke/
+          if-no-files-found: ignore
       - name: Zip (Windows)
         if: runner.os == 'Windows'
         run: Compress-Archive -Path dist/DBNView -DestinationPath DBNView-Windows.zip

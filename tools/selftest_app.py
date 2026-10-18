@@ -41,14 +41,23 @@ def main():
         if os.path.exists("%s_%d.png" % (prefix, i)):
             os.remove("%s_%d.png" % (prefix, i))
 
-    env = dict(os.environ, DBNVIEW_SELFTEST=prefix)
+    # the app dumps its stacks and exits on its own a minute before our timeout (see gui/app.py _SelftestLog)
+    env = dict(os.environ, DBNVIEW_SELFTEST=prefix, DBNVIEW_SELFTEST_TIMEOUT=str(max(30, a.timeout - 60)))
     print("running", a.exe, sample, flush=True)
     try:
         code = subprocess.run([a.exe, sample], env=env, timeout=a.timeout).returncode
     except subprocess.TimeoutExpired:
-        sys.exit("FAIL: app did not quit within %.0f s" % a.timeout)
+        code = None
+    log = prefix + "_selftest.log"
+    if os.path.exists(log):
+        print("---- %s" % log)
+        with open(log, encoding="utf-8", errors="replace") as f:
+            print(f.read().rstrip())
+        print("----")
     ok = code == 0
-    if not ok:
+    if code is None:
+        print("FAIL: app did not quit within %.0f s" % a.timeout)
+    elif not ok:
         print("FAIL: app exited with code %d" % code)
     for i in range(a.tabs):
         path = "%s_%d.png" % (prefix, i)

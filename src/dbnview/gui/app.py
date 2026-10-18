@@ -55,7 +55,36 @@ class App(QtWidgets.QApplication):
         return super().event(e)
 
 
-def _selftest(app, win, prefix):
+class _SelftestLog:
+    """Progress log for the self-test at <prefix>_selftest.log.
+
+    A windowed build (Windows) has no console, so this file is the only trace of a run. faulthandler writes every
+    thread's stack to it and exits if the run is still going after DBNVIEW_SELFTEST_TIMEOUT seconds (default 240),
+    which turns a hang into a failure that says where it stopped.
+    """
+
+    def __init__(self, prefix):
+        import faulthandler
+        import traceback
+        self.t0 = time.time()
+        self.f = open(prefix + "_selftest.log", "w", buffering=1, encoding="utf-8")
+        faulthandler.enable(file=self.f)
+        faulthandler.dump_traceback_later(float(os.environ.get("DBNVIEW_SELFTEST_TIMEOUT", 240)), exit=True,
+                                          file=self.f)
+
+        def hook(*exc):
+            self.f.write("".join(traceback.format_exception(*exc)))
+            self.f.flush()
+            os._exit(3)
+        sys.excepthook = hook
+        self("start %s, Qt platform %s" % (sys.platform, QtWidgets.QApplication.platformName()))
+
+    def __call__(self, msg):
+        self.f.write("%7.2f  %s\n" % (time.time() - self.t0, msg))
+        self.f.flush()
+
+
+def _selftest(app, win, prefix, note):
     """DBNVIEW_SELFTEST=/path/prefix: render every tab to PNG once the scan finishes, then quit (packaging check)."""
     def pump(n, dt=0.03):
         for _ in range(n):
@@ -65,7 +94,9 @@ def _selftest(app, win, prefix):
     def step():
         if win.job is None or not win.job.done or win.timer.isActive():
             return QtCore.QTimer.singleShot(200, step)
+        note("scan done: %d records" % win.job.n)
         for i in range(win.tabs.count()):
+            note("tab %d (%s)" % (i, win.tabs.tabText(i)))
             win.tabs.setCurrentIndex(i)
             pump(30)
             if win.tabs.widget(i) is win.iv and win.iv.root.count():
@@ -75,6 +106,8 @@ def _selftest(app, win, prefix):
                     pump(1, 0.05)
                 pump(30)
             win.grab().save("%s_%d.png" % (prefix, i))
+            note("tab %d saved" % i)
+        note("done")
         app.quit()
 
     QtCore.QTimer.singleShot(500, step)
@@ -83,6 +116,7 @@ def _selftest(app, win, prefix):
 def main(argv=None):
     argv = sys.argv if argv is None else argv
     app = App(argv)
+    note = _SelftestLog(os.environ["DBNVIEW_SELFTEST"]) if os.environ.get("DBNVIEW_SELFTEST") else (lambda msg: None)
     apply_lang(QtCore.QSettings("dbnview", "dbnview").value("lang") or i18n.system_lang())
     from ..i18n import T
     from .splash import Splash, app_icon
@@ -93,7 +127,9 @@ def main(argv=None):
     app.processEvents()
     splash.message(T("正在載入圖表與分析模組…"))
     from .main_window import MainWindow  # the heavy imports (pyqtgraph, OpenGL) happen here
+    note("imported main window")
     win = MainWindow()
+    note("main window built")
     app.win = win
     splash.message(T("準備就緒"))
     while time.time() - shown < 1.2 and not os.environ.get("DBNVIEW_SELFTEST"):  # keep it readable
@@ -106,7 +142,8 @@ def main(argv=None):
     for p in (args[:1] or app.pending[:1]):
         win.open_path(p if is_remote(p) else os.path.abspath(os.path.expanduser(p)))
     if os.environ.get("DBNVIEW_SELFTEST"):
-        _selftest(app, win, os.environ["DBNVIEW_SELFTEST"])
+        note("opened %s" % (args[:1] or app.pending[:1]))
+        _selftest(app, win, os.environ["DBNVIEW_SELFTEST"], note)
     sys.exit(app.exec())
 
 
