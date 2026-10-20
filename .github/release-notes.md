@@ -1,12 +1,14 @@
 ## What's new / 更新内容
 
-- **MBO order book replay** (Tools → MBO Order Book Replay…, ⇧⌘R / Ctrl+Shift+R): play back or scrub a whole MBO day
-  with a depth ladder, per-order queues (L3), a bid/ask/trades chart and an event tape; step by event or by second,
-  0.1×–1800× playback. Builds from source with [LOB-WASR](https://github.com/chester1uo/LOB-WASR) restore any moment
-  exactly in milliseconds; the downloadable builds replay the rows loaded by the scan (queue order approximate).
-  **MBO 订单簿回放**（工具 → MBO 订单簿回放…）：播放或拖动回看一整天的 MBO 订单簿，包括档位、逐笔挂单队列（L3）、
-  买卖价与成交图和事件流，可逐事件或逐秒步进，0.1×–1800× 播放。从源码安装并装有 LOB-WASR 时，任意时刻毫秒级精确恢复；
-  下载版回放扫描已加载的行（队列顺序为近似）。
+- **The downloadable builds now include the LOB-WASR replay engine** on macOS, Windows and Linux: MBO order book
+  replay restores any moment of the day exactly (L3 queues included) in milliseconds; the first replay of a file
+  indexes it (a few seconds). **下载版现已内置 LOB-WASR 回放引擎**（macOS、Windows、Linux）：MBO 订单簿回放可在毫秒级
+  精确恢复当天任意时刻（含 L3 队列），每个文件第一次回放时建索引，约需数秒。
+- **Replay chart legend**: best bid / ask lines; dots are trades only (MBO action T), green buyer-initiated, red
+  seller-initiated, grey no aggressor (auctions). **回放图表图例**：最优买卖价线；圆点只表示成交（MBO action T），
+  绿为买方主动、红为卖方主动、灰为无主动方（集合竞价）。
+- 0.6.0: **MBO order book replay** (Tools → MBO Order Book Replay…, ⇧⌘R / Ctrl+Shift+R) with a depth ladder, per-order
+  queues (L3), a bid/ask/trades chart and an event tape. **MBO 订单簿回放**（工具 → MBO 订单簿回放…）。
 - **SSH connection profiles**: login, key or password, jump hosts / SOCKS5 / HTTP / custom proxy, log level and a
   connection test. **SSH 连接配置**：登录、密钥或密码、跳板机 / SOCKS5 / HTTP / 自定义代理、日志等级和连接测试。
 - Startup splash with version and disclaimer; 3D IV view falls back to 2D when OpenGL is unavailable; UI translations

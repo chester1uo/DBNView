@@ -320,8 +320,8 @@ It starts at the selected table row (its instrument and receive time), or at 09:
 
 Two engines:
 
-- **LOB-WASR** ([github.com/chester1uo/LOB-WASR](https://github.com/chester1uo/LOB-WASR)), when the `wasr` package is
-  installed (`pip install "dbnview[replay]"`, which builds it from source and needs a C++17 compiler, CMake and libzstd).
+- **LOB-WASR** ([github.com/chester1uo/LOB-WASR](https://github.com/chester1uo/LOB-WASR)), built into the packaged apps
+  from 0.6.1 on; from source, when the `wasr` package is installed (`pip install "dbnview[replay]"`, which builds it from source and needs a C++17 compiler, CMake and libzstd).
   The first replay of a file indexes it into a `.wasr` file in the cache (`~/Library/Caches/DBNView/wasr` on macOS,
   `%LOCALAPPDATA%\DBNView\cache\wasr` on Windows, `~/.cache/dbnview/wasr` on Linux; `DBNVIEW_CACHE_DIR` overrides) —
   about 5 s for a 10-million-event day — and later opens are instant. Seeking anywhere takes a few milliseconds, playback

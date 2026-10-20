@@ -305,7 +305,7 @@ not isnan(price) and price > 450
 
 两种引擎：
 
-- **LOB-WASR**（[github.com/chester1uo/LOB-WASR](https://github.com/chester1uo/LOB-WASR)），安装了 `wasr` 包时使用
+- **LOB-WASR**（[github.com/chester1uo/LOB-WASR](https://github.com/chester1uo/LOB-WASR)）：0.6.1 起的安装包已内置；从源码运行时需安装 `wasr` 包
   （`pip install "dbnview[replay]"`，会从源码编译，需要 C++17 编译器、CMake 和 libzstd）。第一次回放某个文件时会把它
   索引成缓存目录里的 `.wasr` 文件（macOS 为 `~/Library/Caches/DBNView/wasr`，Windows 为
   `%LOCALAPPDATA%\DBNView\cache\wasr`，Linux 为 `~/.cache/dbnview/wasr`；可用 `DBNVIEW_CACHE_DIR` 覆盖），1000 万个

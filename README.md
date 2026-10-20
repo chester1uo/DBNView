@@ -83,7 +83,7 @@ Copy `dist/dbnview-web.pyz` to the server and run `python dbnview-web.pyz /data`
   expected move, front and ~30-day ATM IV against realized volatility, skew, call/put volume and the put/call ratio.
 - **MBO order book replay** (Tools → MBO Order Book Replay…, Ctrl/⌘+Shift+R): play back or scrub an MBO day with a
   depth ladder, per-order queues (L3), a bid/ask/trades chart and an event tape. With
-  [LOB-WASR](https://github.com/chester1uo/LOB-WASR) installed (`pip install "dbnview[replay]"`) any moment of the day
+  [LOB-WASR](https://github.com/chester1uo/LOB-WASR) (built into the packaged apps; from source `pip install "dbnview[replay]"`) any moment of the day
   restores exactly in milliseconds; without it, the loaded rows are replayed.
 - **IV surface** for OPRA options: a snapshot at a chosen time, put-call-parity forwards and Black-76 implied
   volatility. Results show as a 3D surface, a heatmap, smile and term-structure slices, and can be exported to CSV.
