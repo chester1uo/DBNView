@@ -288,6 +288,12 @@ git tag v0.5.0 && git push origin v0.5.0
 免安装 zip、Linux 压缩包以及网页版 zipapp，连同 `SHA256SUMS.txt` 发布到 GitHub Release，说明文字取自
 `.github/release-notes.md`。也可以在 Actions 页面对已有标签手动重跑（**Run workflow**）。
 
+**打包 MBO 回放引擎。** LOB-WASR 是私有仓库，所以 CI 和发布构建用仓库 secret `LOB_WASR_TOKEN`（一个对
+`chester1uo/LOB-WASR` 只有 *Contents* 只读权限的 fine-grained token）检出它。有这个 secret 时，每个打包任务都会编译并
+安装 `wasr`（zstd 分别来自 Homebrew、apt 和 vcpkg 的 `x64-windows-static-md`），由 PyInstaller 打进安装包，冒烟测试也会
+要求回放窗口确实跑在 LOB-WASR 上。没有 secret 时照旧打包，回放使用已加载的行。仓库变量 `LOB_WASR_REF` 可以指定
+LOB-WASR 的其他分支或标签（默认 `main`）。
+
 ## 9. 持续集成
 
 `.github/workflows/ci.yml` 在每次 push 和 pull request 时于 GitHub Actions 上运行，包含两个 job：

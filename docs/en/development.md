@@ -297,6 +297,13 @@ Windows installer and portable zip, the Linux tarball and the web zipapp, and pu
 on a GitHub release whose text is `.github/release-notes.md`. It can be re-run for an existing tag from the Actions
 tab (**Run workflow**).
 
+**Bundling the MBO replay engine.** LOB-WASR is a private repository, so the CI and release builds check it out
+with the repository secret `LOB_WASR_TOKEN` (a fine-grained token with read-only *Contents* access to
+`chester1uo/LOB-WASR`). When the secret exists, every package job builds and installs `wasr` (zstd from Homebrew,
+apt or vcpkg's `x64-windows-static-md`), PyInstaller bundles it, and the smoke tests fail unless the replay window ran
+on LOB-WASR. Without the secret the packages are built as before and replay uses the loaded rows. The repository
+variable `LOB_WASR_REF` picks another LOB-WASR branch or tag (default `main`).
+
 ## 9. Continuous integration
 
 `.github/workflows/ci.yml` runs on GitHub Actions on every push and pull request. It has two jobs:

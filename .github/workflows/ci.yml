@@ -38,6 +38,8 @@ jobs:
     name: package (${{ matrix.os }})
     needs: test
     runs-on: ${{ matrix.os }}
+    env:
+      HAS_WASR: ${{ secrets.LOB_WASR_TOKEN != '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -49,6 +51,31 @@ jobs:
           python-version: "3.12"
       - name: Install
         run: python -m pip install -e ".[gui]" pyinstaller
+      - name: Check out LOB-WASR (MBO replay engine; needs the LOB_WASR_TOKEN secret)
+        if: env.HAS_WASR == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: chester1uo/LOB-WASR
+          ref: ${{ vars.LOB_WASR_REF || 'main' }}
+          token: ${{ secrets.LOB_WASR_TOKEN }}
+          path: .lob-wasr
+      - name: Build and install LOB-WASR
+        if: env.HAS_WASR == 'true'
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            macOS)
+              brew install zstd pkg-config
+              export PKG_CONFIG_PATH="$(brew --prefix zstd)/lib/pkgconfig" ;;
+            Linux)
+              sudo apt-get update -q && sudo apt-get install -y -q libzstd-dev pkg-config ;;
+            Windows)  # static zstd with the dynamic C runtime: nothing extra to ship
+              "$VCPKG_INSTALLATION_ROOT/vcpkg.exe" install zstd:x64-windows-static-md
+              export CMAKE_ARGS="-DZSTD_ROOT=$(cygpath -m "$VCPKG_INSTALLATION_ROOT")/installed/x64-windows-static-md" ;;
+          esac
+          python -m pip install ./.lob-wasr
+          python -c "import wasr; print('wasr', wasr.__version__)"
+          echo "DBNVIEW_EXPECT_REPLAY=LOB-WASR" >> "$GITHUB_ENV"  # the smoke tests then insist on it
       - name: PyInstaller
         run: pyinstaller --noconfirm packaging/dbnview.spec
       - name: Sign and zip (macOS)

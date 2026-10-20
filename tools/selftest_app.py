@@ -31,6 +31,8 @@ def main():
     ap.add_argument("workdir", help="where the sample file and screenshots go")
     ap.add_argument("--tabs", type=int, default=6, help="number of tabs the main window has")
     ap.add_argument("--timeout", type=float, default=300)
+    ap.add_argument("--replay-engine", default=os.environ.get("DBNVIEW_EXPECT_REPLAY", ""),
+                    help="fail unless the MBO replay ran on this engine, e.g. LOB-WASR (default: $DBNVIEW_EXPECT_REPLAY)")
     a = ap.parse_args()
 
     os.makedirs(a.workdir, exist_ok=True)
@@ -50,16 +52,19 @@ def main():
     except subprocess.TimeoutExpired:
         code = None
     log = prefix + "_selftest.log"
+    text = ""
     if os.path.exists(log):
-        print("---- %s" % log)
         with open(log, encoding="utf-8", errors="replace") as f:
-            print(f.read().rstrip())
-        print("----")
+            text = f.read()
+        print("---- %s\n%s\n----" % (log, text.rstrip()))
     ok = code == 0
     if code is None:
         print("FAIL: app did not quit within %.0f s" % a.timeout)
     elif not ok:
         print("FAIL: app exited with code %d" % code)
+    if a.replay_engine and "replay: %s," % a.replay_engine not in text:
+        ok = False
+        print("FAIL: the MBO replay did not run on %s" % a.replay_engine)
     for i in range(a.tabs):
         path = "%s_%d.png" % (prefix, i)
         size = png_size(path) if os.path.exists(path) else None
