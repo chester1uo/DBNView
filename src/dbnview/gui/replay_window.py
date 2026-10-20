@@ -274,6 +274,9 @@ class ReplayWindow(QtWidgets.QMainWindow):
         crow.addWidget(hint)
         crow.addStretch()
         cl.addLayout(crow)
+        self.legend = QtWidgets.QLabel(self._legend_html())
+        self.legend.setWordWrap(True)
+        cl.addWidget(self.legend)
         self.plot = pg.PlotWidget(axisItems={"bottom": TzAxis(self.win)})
         self.plot.showGrid(x=True, y=True, alpha=0.15)
         self.plot.setMouseEnabled(x=False, y=False)
@@ -314,6 +317,18 @@ class ReplayWindow(QtWidgets.QMainWindow):
             sc.setContext(Qt.WindowShortcut)
             sc.activated.connect(lambda fn=fn: self.r is not None and fn())
         self._set_enabled(False)
+
+    @staticmethod
+    def _legend_html():
+        """What the chart shows: BBO step lines, and dots for trades only (MBO action T) coloured by aggressor side."""
+        t = theme()
+        dot = lambda c: "<span style='color:%s'>●</span>" % c
+        line = lambda c: "<span style='color:%s'>━</span>" % c
+        return ("<span style='color:%s'>%s %s &nbsp; %s %s &nbsp;·&nbsp; %s: %s %s &nbsp; %s %s &nbsp; %s %s"
+                " &nbsp;·&nbsp; %s</span>") % (
+            t["muted"], line(t["bid"]), T("Best bid"), line(t["ask"]), T("Best ask"), T("Dots = trades (MBO action T)"),
+            dot(t["bid"]), T("buyer-initiated"), dot(t["ask"]), T("seller-initiated"), dot(t["muted"]),
+            T("no aggressor (e.g. auction)"), T("dot size ∝ √volume, scaled within the view"))
 
     def _set_enabled(self, on):
         for w in self.findChildren(QtWidgets.QAbstractButton) + [self.slider, self.time_edit, self.speed, self.depth,
