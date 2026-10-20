@@ -28,6 +28,8 @@ gui = ["PySide6>=6.5", "pyqtgraph>=0.13", "PyOpenGL>=3.1"]
 tui = ["textual>=0.60", "plotext>=5.2,<6"]
 all = ["dbnview[gui,tui]"]
 dev = ["dbnview[all]", "pytest>=7", "pyflakes", "pyinstaller>=6"]
+# MBO replay engine; builds from source (C++17 compiler, CMake, libzstd)
+replay = ["lob-wasr @ git+https://github.com/chester1uo/LOB-WASR.git"]
 
 [project.scripts]
 dbnview-web = "dbnview.web.server:main"

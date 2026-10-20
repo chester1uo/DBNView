@@ -79,6 +79,9 @@ ssh -N -L 8765:localhost:8765 myserver       # on your laptop, then open the pri
   总 GEX 和 Gamma 翻转点（桌面版分页与终端界面第 7 页）。
 - **股票＋期权联合分析**（工具 → 股票＋期权联合分析…，Ctrl/⌘+J）：独立子窗口，把标的文件和期权文件对齐到同一时间轴——
   股价叠加 parity 推出的隐含标的价与近月跨式预期波动区间、近月与约 30 天 ATM IV 对比实现波动率、偏斜、Call/Put 成交量与 P/C 比。
+- **MBO 订单簿回放**（工具 → MBO 订单簿回放…，Ctrl/⌘+Shift+R）：播放或拖动回看一整天的 MBO 订单簿，包括档位、
+  逐笔挂单队列（L3）、买卖价与成交图和事件流。安装 [LOB-WASR](https://github.com/chester1uo/LOB-WASR)
+  （`pip install "dbnview[replay]"`）后，当天任意时刻都能在毫秒级精确恢复；未安装时回放已加载的行。
 - **IV 曲面**（OPRA 期权）：在指定时刻取快照，用买卖权平价推算远期价格，再用 Black-76 计算隐含波动率。
   结果以 3D 曲面、热图、波动率微笑和期限结构截面显示，并可导出 CSV。
 - **通过 ssh 读取远程文件**（`ssh host cat`，使用 `~/.ssh/config` 中的密钥）、拖放打开、触控板双指缩放。

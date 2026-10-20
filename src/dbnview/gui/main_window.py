@@ -81,7 +81,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.col_menu.aboutToShow.connect(lambda: self.table.fill_col_menu(menu=self.col_menu))
         mb.addMenu(T("View")).addActions([self.a_filters, self.a_detail])
         self.a_joint = A(T("Stock + Options Analysis…"), self, shortcut="Ctrl+J", triggered=self.open_joint)
-        mb.addMenu(T("Tools")).addAction(self.a_joint)
+        self.a_replay = A(T("MBO Order Book Replay…"), self, shortcut="Ctrl+Shift+R", triggered=self.open_replay)
+        self.a_replay.setEnabled(False)
+        tools = mb.addMenu(T("Tools"))
+        tools.addAction(self.a_joint)
+        tools.addAction(self.a_replay)
         about = QtGui.QAction(T("About DBNView"), self, triggered=self.show_about)
         about.setMenuRole(QtGui.QAction.AboutRole)
         mb.addMenu(T("Help")).addAction(about)
@@ -257,6 +261,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.a_stop.setEnabled(running)
         self.a_scan.setEnabled(self.fi is not None)
         self.a_export.setEnabled(self.job is not None and self.job.n > 0)
+        self.a_replay.setEnabled(self.fi is not None and self.fi.md.get("schema") == "mbo")
         self.left.set_running(self.fi is not None, running)
 
     def show_error(self, e):
@@ -272,6 +277,22 @@ class MainWindow(QtWidgets.QMainWindow):
         w = JointWindow(self)
         w.show()
         self._joint = getattr(self, "_joint", []) + [w]  # keep a reference while it is open
+
+    def open_replay(self):
+        """Replay the current MBO file; start at the selected row (its instrument and receive time) when there is one."""
+        if self.fi is None or self.fi.md.get("schema") != "mbo":
+            return
+        from .replay_window import ReplayWindow
+        iid = start = None
+        row = self.table.view.currentIndex().row()
+        if self.job is not None and 0 < row < self.job.n:  # row 0 is selected automatically: use the default start
+            s, i = self.job._locate(row)
+            recs = self.job.segments[s][1]
+            if "ts_recv" in recs.dtype.names:
+                iid, start = int(recs["instrument_id"][i]), int(recs["ts_recv"][i])
+        w = ReplayWindow(self, self.fi.path, iid, start)
+        w.show()
+        self._replays = [x for x in getattr(self, "_replays", []) if x.isVisible()] + [w]
 
     # ---- cross-panel actions ---------------------------------------------------------
     def filter_instrument(self, iid):

@@ -304,6 +304,33 @@ The Format Guide tab explains the open file:
 - **Common pitfalls**: for example, prices are integers ÷ 1e9, `ts_recv` versus `ts_event`, MBO `T`/`F` versus
   `C`/`M`, and OPRA instrument ids changing from day to day.
 
+### 5.6 MBO order book replay
+
+**Tools → MBO Order Book Replay…** (⇧⌘R, MBO files only) opens a window that replays the order book of the day.
+It starts at the selected table row (its instrument and receive time), or at 09:30 New York for Nasdaq days.
+
+- **Ladder** (left): the top *Depth* levels per side with size bars and order counts; levels that just changed flash.
+  **Show queues (L3)** splits each bar into the resting orders in queue order (first in queue next to the price);
+  hover a segment for its queue position, order ID and size.
+- **Chart** (top right): bid and ask as step lines and trades as dots (size by volume, colour by aggressor side) in a
+  moving window around the current time; click it to jump there.
+- **Event tape** (bottom right): the 40 events before the current position, newest first.
+- **Playback**: ▶ / Space plays at the chosen speed (0.1× to 1800×); ←/→ step one second, ⇧←/⇧→ one event; the slider
+  and the time box (`10:30`, `10:30:15.250` or a full date-time) jump anywhere.
+
+Two engines:
+
+- **LOB-WASR** ([github.com/chester1uo/LOB-WASR](https://github.com/chester1uo/LOB-WASR)), when the `wasr` package is
+  installed (`pip install "dbnview[replay]"`, which builds it from source and needs a C++17 compiler, CMake and libzstd).
+  The first replay of a file indexes it into a `.wasr` file in the cache (`~/Library/Caches/DBNView/wasr` on macOS,
+  `%LOCALAPPDATA%\DBNView\cache\wasr` on Windows, `~/.cache/dbnview/wasr` on Linux; `DBNVIEW_CACHE_DIR` overrides) —
+  about 5 s for a 10-million-event day — and later opens are instant. Seeking anywhere takes a few milliseconds, playback
+  frames well under one, and queues are exact (including the CME modify rules). Remote files are downloaded into the
+  cache for indexing. LOB-WASR needs one instrument per file.
+- **Loaded rows** otherwise (or for files with several instruments): the MBO rows already loaded by the scan, for one
+  instrument, with checkpoints in memory. It covers only the loaded rows (*Max Rows*), and queue order is approximate
+  (a modify moves the order to the back).
+
 ## 6. Charts in the terminal UI
 
 The terminal UI draws charts with plotext in the Chart tab (key `3`). Press `c` to cycle between three modes:
@@ -483,6 +510,7 @@ On Windows and Linux, ⌘ is Ctrl.
 | ⌘R | Scan (rerun with the current filters) |
 | ⌘. | Stop scan |
 | ⌘E | Export CSV… |
+| ⇧⌘R | MBO Order Book Replay… (MBO files) |
 | ⌘I | show/hide the detail panel |
 | ⌘L | show/hide the file and filter panel |
 | ⌘Q | Quit (the platform's standard quit key) |
@@ -490,6 +518,7 @@ On Windows and Linux, ⌘ is Ctrl.
 | Delete / Backspace | remove the selected symbol pattern |
 | mouse wheel / pinch, drag | zoom and pan charts |
 | drag, wheel / pinch, middle-drag or ⌘-drag | rotate, zoom and pan the 3D IV surface |
+| Space, ←/→, ⇧←/⇧→ | in the replay window: play/pause, step one second, step one event |
 
 ### 10.2 Terminal UI
 
