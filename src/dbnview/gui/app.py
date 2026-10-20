@@ -107,6 +107,19 @@ def _selftest(app, win, prefix, note):
                 pump(30)
             win.grab().save("%s_%d.png" % (prefix, i))
             note("tab %d saved" % i)
+        if win.a_replay.isEnabled():  # MBO file: the replay window too (LOB-WASR when bundled)
+            win.open_replay()
+            rw = win._replays[-1]
+            t0 = time.time()
+            while (rw.r is None or rw.snap is None) and time.time() - t0 < 120:
+                pump(1, 0.05)
+            if rw.r is None:
+                raise RuntimeError("replay did not open: %s" % rw.status.text())
+            note("replay: %s, %s" % (rw.r.name, rw.status.text()))
+            rw.step_event(1)
+            pump(20)
+            rw.grab().save("%s_replay.png" % prefix)
+            rw.close()
         note("done")
         app.quit()
 

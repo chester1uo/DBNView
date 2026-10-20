@@ -42,7 +42,8 @@ def main():
             os.remove("%s_%d.png" % (prefix, i))
 
     # the app dumps its stacks and exits on its own a minute before our timeout (see gui/app.py _SelftestLog)
-    env = dict(os.environ, DBNVIEW_SELFTEST=prefix, DBNVIEW_SELFTEST_TIMEOUT=str(max(30, a.timeout - 60)))
+    env = dict(os.environ, DBNVIEW_SELFTEST=prefix, DBNVIEW_SELFTEST_TIMEOUT=str(max(30, a.timeout - 60)),
+               DBNVIEW_CACHE_DIR=os.path.join(a.workdir, "cache"))  # replay index of the throwaway sample
     print("running", a.exe, sample, flush=True)
     try:
         code = subprocess.run([a.exe, sample], env=env, timeout=a.timeout).returncode
